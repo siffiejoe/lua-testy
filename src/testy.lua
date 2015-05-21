@@ -80,7 +80,7 @@ local function _G_testy_assert( ok, ... )
 end
 
 
--- print final tests statistics and exit with a non-zero status if
+-- print final test statistics and exit with a non-zero status if
 -- there were failed tests
 local function final_report()
   if cursor_pos ~= 0 then
@@ -95,8 +95,8 @@ local function final_report()
 end
 
 
--- from within the return hook find the stack level of the main chunk
--- that should contain the test functions
+-- make sure that the hook is called from a main chunk that should
+-- contain the test functions
 local function main_chunk( lvl )
   lvl = lvl+1 -- skip stack level of this function
   local info, i = debug.getinfo( lvl, "Sf" ), lvl+2
