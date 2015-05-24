@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>testy.lua</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        
+          <h1>testy.lua</h1>
+        
+
+        
+      </div>
+
+        <p><strong>Testy</strong> is a quick-and-dirty unit testing script for Lua modules
+that tries to be as unobtrusive as possible. It loads the specified
+modules and collects test functions from local variables by means
+of debug hooks. Finally, those test functions are run to collect
+and print statistics about passed/failed test assertions.</p>
+<p>Nice features about this approach are:</p>
+<ul>
+<li>By storing the test code side-by-side with your regular module
+code it should be easier to keep those two in sync.</li>
+<li>You can test internal/local functions without messing up your
+public interface (because the test functions themselves are
+local functions embedded in the module code as well).</li>
+<li>If you don’t load the module via the <code>testy.lua</code> script, the
+local test functions and all test data just goes out of scope
+and gets garbage-collected very quickly.</li>
+</ul>
+<p>The current implementation consists of a single pure Lua file
+compatible with Lua 5.1 and up, with no external dependencies.</p>
+<p>The <code>testy.lua</code> <a href="http://github.com/siffiejoe/lua-testy">source code</a> is available on GitHub, and is
+released under the <a href="http://opensource.org/licenses/MIT">MIT license</a>. You can view <a href="http://siffiejoe.github.io/lua-testy/">a nice HTML
+version</a> of this file rendered by <a href="http://jashkenas.github.io/docco/">Docco</a> on the GitHub
+pages.</p>
+<p>Test functions are identified by a <code>&quot;test_&quot;</code> prefix and use the
+standard <code>assert</code> function or the new <code>testy_assert</code> function for
+individual test assertions. Both functions just log failure/success
+and print a visual indicator to the console, but they do <em>not</em>
+terminate the program (of course <code>assert</code> still does when used
+outside of a test function for compatibility).</p>
+<p>Here is an example:</p>
+<pre><code><span class="hljs-comment">-- module1.lua</span>
+<span class="hljs-keyword">local</span> M = {}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">M.func1</span><span class="hljs-params">()</span></span>
+  <span class="hljs-keyword">return</span> <span class="hljs-number">1</span>
+<span class="hljs-keyword">end</span>
+
+<span class="hljs-comment">-- this is a test function for the module function `M.func1()`</span>
+<span class="hljs-keyword">local</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">test_func1</span><span class="hljs-params">()</span></span>
+  <span class="hljs-built_in">assert</span>( M.func1() == <span class="hljs-number">1</span>, <span class="hljs-string">"func1() should always return 1"</span> )
+  <span class="hljs-built_in">assert</span>( M.func1() ~= <span class="hljs-number">2</span>, <span class="hljs-string">"func1() should never return 2"</span> )
+  <span class="hljs-built_in">assert</span>( <span class="hljs-built_in">type</span>( M.func1() ) == <span class="hljs-string">"number"</span> )
+<span class="hljs-keyword">end</span>
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">M.func2</span><span class="hljs-params">()</span></span>
+  <span class="hljs-keyword">return</span> <span class="hljs-number">2</span>
+<span class="hljs-keyword">end</span>
+
+<span class="hljs-comment">-- this is a test function for the module function `M.func2()`</span>
+<span class="hljs-keyword">local</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">test_func2</span><span class="hljs-params">()</span></span>
+  <span class="hljs-built_in">assert</span>( M.func2() == <span class="hljs-number">2</span> )
+  <span class="hljs-built_in">assert</span>( M.func2() ~= M.func1() )
+<span class="hljs-keyword">end</span>
+
+<span class="hljs-keyword">return</span> M
+</code></pre><p>Using the <code>testy.lua</code> script on this file will get you the
+following output:</p>
+<pre><code>$ testy.lua module1.lua
+func1 (<span class="hljs-string">'module1.lua'</span>)   ...
+func2 (<span class="hljs-string">'module1.lua'</span>)   ..
+<span class="hljs-number">5</span> tests (<span class="hljs-number">5</span> ok, <span class="hljs-number">0</span> failed, <span class="hljs-number">0</span> errors)
+</code></pre><p><strong>Testy</strong> is a very minimal unit testing framework that lacks lots
+of features that other unit testing frameworks have, but in return
+you can start unit testing without a learning curve.</p>
+
+        
+      
+        
+        <h2 id="implementation">Implementation</h2>
+<p>There are some obviously arbitrary design choices (like e.g. the
+prefix of the test functions) that one might want to customize.
+Those variables allow you to do just that:</p>
+
+        
+          <div class='highlight'><pre><span class="hljs-keyword">local</span> prefix = <span class="hljs-string">"test_"</span> <span class="hljs-comment">-- the prefix of test functions to look for</span>
+<span class="hljs-keyword">local</span> pass_char, fail_char = <span class="hljs-string">"."</span>, <span class="hljs-string">"X"</span> <span class="hljs-comment">-- output for passed/failed tests</span>
+<span class="hljs-keyword">local</span> max_line = <span class="hljs-number">72</span> <span class="hljs-comment">-- where to wrap test output in the terminal</span>
+<span class="hljs-keyword">local</span> fh = <span class="hljs-built_in">io</span>.stderr <span class="hljs-comment">-- file handle to print test output to</span></pre></div>
+        
+      
+        
+        <p>There’s also some data that the <code>testy.lua</code> script needs to keep
+track of, like module files, test functions, test failures, etc.:</p>
+
+        
+          <div class='highlight'><pre><span class="hljs-keyword">local</span> files, chunks, do_recursive = {}, {}, <span class="hljs-keyword">false</span>
+<span class="hljs-keyword">local</span> tests, test_functions = {}, {}
+<span class="hljs-keyword">local</span> n_tests, n_passed, n_errors = <span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>
+<span class="hljs-keyword">local</span> cursor_pos = <span class="hljs-number">0</span>
+<span class="hljs-keyword">local</span> locals = {}
+<span class="hljs-keyword">local</span> thischunk = <span class="hljs-built_in">debug</span>.getinfo( <span class="hljs-number">1</span>, <span class="hljs-string">"f"</span> ).func
+<span class="hljs-keyword">local</span> <span class="hljs-built_in">assert</span> = <span class="hljs-built_in">assert</span> <span class="hljs-comment">-- we monkey-patch assert, so save the real one</span></pre></div>
+        
+      
+        
+        <p>During <code>assert</code> or <code>testy_assert</code> the test statistics are updated
+and a visual indicator is printed to the console.</p>
+
+        
+          <div class='highlight'><pre><span class="hljs-keyword">local</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">evaluate_test_assertion</span><span class="hljs-params">( finfo, cinfo, ok, ... )</span></span>
+  n_tests = n_tests + <span class="hljs-number">1</span>
+  fh:write( ok <span class="hljs-keyword">and</span> pass_char <span class="hljs-keyword">or</span> fail_char )</pre></div>
+        
+      
+        
+        <p>For nicer output the visual test indicators are wrapped at a
+certain line length (<code>max_line</code>).</p>
+
+        
+          <div class='highlight'><pre>  cursor_pos = (cursor_pos + <span class="hljs-number">1</span>) % max_line
+  <span class="hljs-keyword">if</span> cursor_pos == <span class="hljs-number">0</span> <span class="hljs-keyword">then</span>
+    fh:write( <span class="hljs-string">"\n"</span> )
+  <span class="hljs-keyword">end</span>
+  fh:flush()
+  <span class="hljs-keyword">if</span> ok <span class="hljs-keyword">then</span>
+    n_passed = n_passed + <span class="hljs-number">1</span>
+    <span class="hljs-keyword">return</span> ok, ...
+  <span class="hljs-keyword">else</span></pre></div>
+        
+      
+        
+        <p>Details of test failures are stored per test function and
+printed when all <code>assert</code>s in this test function are complete.
+This looks nicer on screen. (Another option would be to print
+all failure details at the very end.)</p>
+
+        
+          <div class='highlight'><pre>    <span class="hljs-keyword">local</span> fail = {
+      no = n_tests,
+      line = cinfo.currentline,
+      reason = (...) ~= <span class="hljs-keyword">nil</span> <span class="hljs-keyword">and</span> <span class="hljs-built_in">tostring</span>( (...) ) <span class="hljs-keyword">or</span> <span class="hljs-keyword">nil</span>
+    }
+    finfo[ #finfo+<span class="hljs-number">1</span> ] = fail
+  <span class="hljs-keyword">end</span>
+<span class="hljs-keyword">end</span></pre></div>
+        
+      
+        
+        <p><strong>Testy</strong> provides a monkey-patched <code>assert</code> function that can be
+used in test functions without killing the program on an assertion
+failure. For compatibility, any call of this function outside of
+test functions just uses the original <code>assert</code> function from Lua’s
+standard library. Usually this is exactly what you want, but there
+may be certain situations where you want to move an <code>assert</code> call
+to an extra function and still update test statistics (like e.g.
+assertions in callbacks, or helper functions for assertions). For
+these cases <strong>Testy</strong> also provides the new global function
+<code>testy_assert</code>.</p>
+
+        
+          <div class='highlight'><pre><span class="hljs-keyword">local</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_G_assert</span><span class="hljs-params">( ok, ... )</span></span></pre></div>
+        
+      
+        
+        <p>The <code>assert</code> replacement checks the call stack via the <code>debug</code>
+API to find the calling test function and some extra information
+for the test statistics.</p>
+
+        
+          <div class='highlight'><pre>  <span class="hljs-keyword">local</span> info = <span class="hljs-built_in">debug</span>.getinfo( <span class="hljs-number">2</span>, <span class="hljs-string">"fl"</span> )
+  <span class="hljs-keyword">local</span> finfo = test_functions[ info.func <span class="hljs-keyword">or</span> <span class="hljs-keyword">false</span> ]
+  <span class="hljs-keyword">if</span> finfo <span class="hljs-keyword">then</span>
+    <span class="hljs-keyword">return</span> evaluate_test_assertion( finfo, info, ok, ... )
+  <span class="hljs-keyword">else</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-built_in">assert</span>( ok, ... )
+  <span class="hljs-keyword">end</span>
+<span class="hljs-keyword">end</span></pre></div>
+        
+      
+        
+        <p><code>testy_assert</code> works similar to the <code>assert</code> replacement function,
+but since calls to this function in non-test code is not an issue
+(it is a new function), <code>testy_assert</code> works anywhere and can
+always be used instead of plain <code>assert</code>. In certain situations it
+<em>has</em> to be used, e.g.:</p>
+<pre><code><span class="hljs-keyword">local</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">assert_equal</span><span class="hljs-params">( x, y )</span></span>
+  testy_assert( x == y )  <span class="hljs-comment">-- call in helper assertion function</span>
+<span class="hljs-keyword">end</span>
+
+<span class="hljs-keyword">local</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">test_mytest</span><span class="hljs-params">()</span></span>
+  <span class="hljs-keyword">local</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">callback</span><span class="hljs-params">( x )</span></span>
+    testy_assert( x == <span class="hljs-number">1</span> ) <span class="hljs-comment">-- call in callback</span>
+  <span class="hljs-keyword">end</span>
+  M.foreachi( { <span class="hljs-number">1</span>, <span class="hljs-number">1</span>, <span class="hljs-number">1</span> }, callback )
+  assert_equal( <span class="hljs-number">1</span>, <span class="hljs-number">1</span> )
+<span class="hljs-keyword">end</span>
+</code></pre><p>Although the new <code>testy_assert</code> function is more general than the
+monkey-patched <code>assert</code> function the latter is still made available
+because:</p>
+<ul>
+<li>Every Lua programmer can see what’s going on, and it looks more
+familiar.</li>
+<li>Converting ad-hoc test code is easier.</li>
+<li>Most test code can be run without using the <code>testy.lua</code> program
+simply by adding a call to one or more test functions in the
+module code.</li>
+<li>Also <code>assert</code> is shorter than <code>testy_assert</code>. ;-)</li>
+</ul>
+
+        
+          <div class='highlight'><pre><span class="hljs-keyword">local</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_G_testy_assert</span><span class="hljs-params">( ok, ... )</span></span></pre></div>
+        
+      
+        
+        <p>A <code>testy_assert</code> call also inspects the call stack to find the
+test function it belongs to, but since the restriction that it
+<em>has</em> to be called directly from the test function could be
+lifted, the entire call stack is searched from top to bottom.</p>
+
+        
+          <div class='highlight'><pre>  <span class="hljs-keyword">local</span> info, i, finfo = <span class="hljs-built_in">debug</span>.getinfo( <span class="hljs-number">2</span>, <span class="hljs-string">"fl"</span> ), <span class="hljs-number">3</span>
+  <span class="hljs-keyword">while</span> info <span class="hljs-keyword">do</span>
+    <span class="hljs-keyword">if</span> info.func == thischunk <span class="hljs-keyword">then</span> <span class="hljs-keyword">break</span> <span class="hljs-keyword">end</span>
+    finfo = test_functions[ info.func <span class="hljs-keyword">or</span> <span class="hljs-keyword">false</span> ]
+    <span class="hljs-keyword">if</span> finfo <span class="hljs-keyword">then</span> <span class="hljs-keyword">break</span> <span class="hljs-keyword">end</span>
+    info, i = <span class="hljs-built_in">debug</span>.getinfo( i, <span class="hljs-string">"fl"</span> ), i+<span class="hljs-number">1</span>
+  <span class="hljs-keyword">end</span>
+  <span class="hljs-keyword">if</span> finfo <span class="hljs-keyword">then</span>
+    <span class="hljs-keyword">return</span> evaluate_test_assertion( finfo, info, ok, ... )
+  <span class="hljs-keyword">else</span>
+    <span class="hljs-built_in">error</span>( <span class="hljs-string">"call to 'testy_assert' function outside of tests"</span>, <span class="hljs-number">2</span> )
+  <span class="hljs-keyword">end</span>
+<span class="hljs-keyword">end</span></pre></div>
+        
+      
+        
+        <p>The local test functions are collected via debug hooks from main
+chunks only. This function checks that a debug hook belongs to
+a main chunk.</p>
+
+        
+          <div class='highlight'><pre><span class="hljs-keyword">local</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">main_chunk</span><span class="hljs-params">( lvl )</span></span>
+  lvl = lvl+<span class="hljs-number">1</span> <span class="hljs-comment">-- skip stack level of this function</span>
+  <span class="hljs-keyword">local</span> info, i = <span class="hljs-built_in">debug</span>.getinfo( lvl, <span class="hljs-string">"Sf"</span> ), lvl+<span class="hljs-number">2</span>
+  <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> info <span class="hljs-keyword">or</span> info.what ~= <span class="hljs-string">"main"</span> <span class="hljs-keyword">or</span> info.func == thischunk <span class="hljs-keyword">then</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">false</span>
+  <span class="hljs-keyword">end</span></pre></div>
+        
+      
+        
+        <p>If the <code>-r</code> flag is in effect, any main chunk may contain test
+functions that will be collected. If <code>-r</code> is <em>not</em> in effect,
+only the main chunk executed directly by the <code>testy.lua</code> script
+is considered.</p>
+
+        
+          <div class='highlight'><pre>  <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> do_recursive <span class="hljs-keyword">then</span>
+    info = <span class="hljs-built_in">debug</span>.getinfo( lvl+<span class="hljs-number">1</span>, <span class="hljs-string">"Sf"</span> )
+    <span class="hljs-keyword">while</span> info <span class="hljs-keyword">and</span> info.func ~= thischunk <span class="hljs-keyword">do</span>
+      <span class="hljs-keyword">if</span> info.what == <span class="hljs-string">"main"</span> <span class="hljs-keyword">then</span>
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">false</span>
+      <span class="hljs-keyword">end</span>
+      info, i = <span class="hljs-built_in">debug</span>.getinfo( i, <span class="hljs-string">"Sf"</span> ), i+<span class="hljs-number">1</span>
+    <span class="hljs-keyword">end</span>
+  <span class="hljs-keyword">end</span>
+  <span class="hljs-keyword">return</span> <span class="hljs-keyword">true</span>
+<span class="hljs-keyword">end</span></pre></div>
+        
+      
+        
+        <p>Usually a return hook would be the perfect place to collect
+information about local variables because all variables have been
+defined and contain their final values. Unfortunately all current
+PUC-Rio Lua versions (5.1.5, 5.2.4, and 5.3.0) clobber the local
+variables before the return hook is executed. As a consequence,
+<strong>Testy</strong> saves the current state of the local variables on every
+line using an additional line hook and uses that saved information
+in the return hook to identify test functions. Sadly that can be
+very inefficient, especially if the code executes a lot of lines
+(e.g. using a loop), but top level module code normally doesn’t do
+that (it usually contains mostly function definitions). The test
+functions themselves are executed without debug hooks and thus run
+at full speed, so if you need to run a lot of code to prepare your
+test cases, better move that code into the first test function.</p>
+
+        
+          <div class='highlight'><pre><span class="hljs-keyword">local</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">line_ret_hook</span><span class="hljs-params">( event, no )</span></span>
+  <span class="hljs-keyword">if</span> event ~= <span class="hljs-string">"tail_return"</span> <span class="hljs-keyword">and</span> main_chunk( <span class="hljs-number">2</span> ) <span class="hljs-keyword">then</span>
+    <span class="hljs-keyword">local</span> info = <span class="hljs-built_in">debug</span>.getinfo( <span class="hljs-number">2</span>, <span class="hljs-string">"Sf"</span> )
+    <span class="hljs-keyword">if</span> event == <span class="hljs-string">"line"</span> <span class="hljs-keyword">then</span>
+      <span class="hljs-keyword">local</span> locs = {}
+      <span class="hljs-keyword">local</span> i, name, value = <span class="hljs-number">2</span>, <span class="hljs-built_in">debug</span>.getlocal( <span class="hljs-number">2</span>, <span class="hljs-number">1</span> )
+      <span class="hljs-keyword">while</span> name <span class="hljs-keyword">do</span>
+        <span class="hljs-keyword">if</span> #name &gt;= #prefix <span class="hljs-keyword">and</span>
+           <span class="hljs-built_in">type</span>( value ) == <span class="hljs-string">"function"</span> <span class="hljs-keyword">and</span>
+           name:sub( <span class="hljs-number">1</span>, #prefix ) == prefix <span class="hljs-keyword">then</span>
+          <span class="hljs-keyword">local</span> caption = name:sub( #prefix+<span class="hljs-number">1</span> ):gsub( <span class="hljs-string">"_"</span>, <span class="hljs-string">" "</span> )
+          <span class="hljs-keyword">local</span> tdata = {
+            caption = caption,
+            name = name,
+            func = value,
+            source = info.short_src,
+          }
+          locs[ #locs+<span class="hljs-number">1</span> ] = tdata
+        <span class="hljs-keyword">end</span>
+        i, name, value = i+<span class="hljs-number">1</span>, <span class="hljs-built_in">debug</span>.getlocal( <span class="hljs-number">2</span>, i )
+      <span class="hljs-keyword">end</span>
+      locals[ info.func ] = locs
+    <span class="hljs-keyword">else</span> <span class="hljs-comment">-- return hook</span>
+      <span class="hljs-keyword">for</span> _,tdata <span class="hljs-keyword">in</span> <span class="hljs-built_in">ipairs</span>( locals[ info.func ] <span class="hljs-keyword">or</span> {} ) <span class="hljs-keyword">do</span>
+        tests[ #tests+<span class="hljs-number">1</span> ] = tdata
+        test_functions[ tdata.func ] = tdata
+      <span class="hljs-keyword">end</span>
+    <span class="hljs-keyword">end</span>
+  <span class="hljs-keyword">end</span>
+<span class="hljs-keyword">end</span></pre></div>
+        
+      
+        
+        <p>When using the line hook to collect local variables, under some
+circumstances the last local isn’t picked up when the definition
+is the last statement in the chunk. To circumvent that problem
+this function first tries to load the code with an extra <code>return</code>
+statement appended. Only if that fails (which it will if the code
+already contains a final <code>return</code>), the original code is loaded.</p>
+
+        
+          <div class='highlight'><pre><span class="hljs-keyword">local</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">loadfile_with_extra_return</span><span class="hljs-params">( fname )</span></span>
+  <span class="hljs-keyword">local</span> f, msg = <span class="hljs-built_in">io</span>.open( fname, <span class="hljs-string">"rb"</span> )
+  <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> f <span class="hljs-keyword">then</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">nil</span>, msg
+  <span class="hljs-keyword">end</span>
+  <span class="hljs-keyword">local</span> s = f:read( <span class="hljs-string">"*a"</span> )
+  <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> s <span class="hljs-keyword">then</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">nil</span>, <span class="hljs-string">"input/ouput error"</span>
+  <span class="hljs-keyword">end</span></pre></div>
+        
+      
+        
+        <p><code>loadstring</code>/<code>load</code> won’t handle shebang lines like <code>loadfile</code>
+does, so the shebang line has to be removed.</p>
+
+        
+          <div class='highlight'><pre>  s = s:gsub( <span class="hljs-string">"^#[^\n]*"</span>, <span class="hljs-string">""</span>) .. <span class="hljs-string">"\nreturn\n"</span>
+  <span class="hljs-keyword">local</span> c, msg = (<span class="hljs-built_in">loadstring</span> <span class="hljs-keyword">or</span> <span class="hljs-built_in">load</span>)( s, <span class="hljs-string">"@"</span>..fname )
+  <span class="hljs-keyword">if</span> c <span class="hljs-keyword">then</span>
+    <span class="hljs-keyword">return</span> c
+  <span class="hljs-keyword">else</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-built_in">loadfile</span>( fname )
+  <span class="hljs-keyword">end</span>
+<span class="hljs-keyword">end</span></pre></div>
+        
+      
+        
+        <p>The enhanced/modified Lua searcher below needs the Lua function
+<code>package.searchpath</code> available in Lua 5.2+ to locate Lua files. For
+Lua 5.1 a backport is provided:</p>
+
+        
+          <div class='highlight'><pre><span class="hljs-keyword">local</span> searchpath = <span class="hljs-built_in">package</span>.searchpath
+<span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> searchpath <span class="hljs-keyword">then</span>
+  <span class="hljs-keyword">local</span> delim = <span class="hljs-built_in">package</span>.config:match( <span class="hljs-string">"^(.-)\n"</span> ):gsub( <span class="hljs-string">"%%"</span>, <span class="hljs-string">"%%%%"</span> )
+
+  <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">searchpath</span><span class="hljs-params">( name, path )</span></span>
+    <span class="hljs-keyword">local</span> pname = name:gsub( <span class="hljs-string">"%."</span>, delim ):gsub( <span class="hljs-string">"%%"</span>, <span class="hljs-string">"%%%%"</span> )
+    <span class="hljs-keyword">local</span> msg = {}
+    <span class="hljs-keyword">for</span> subpath <span class="hljs-keyword">in</span> path:gmatch( <span class="hljs-string">"[^;]+"</span> ) <span class="hljs-keyword">do</span>
+      <span class="hljs-keyword">local</span> fpath = subpath:gsub( <span class="hljs-string">"%?"</span>, pname )
+      <span class="hljs-keyword">local</span> f = <span class="hljs-built_in">io</span>.open( fpath, <span class="hljs-string">"r"</span> )
+      <span class="hljs-keyword">if</span> f <span class="hljs-keyword">then</span>
+        f:close()
+        <span class="hljs-keyword">return</span> fpath
+      <span class="hljs-keyword">end</span>
+      msg[ #msg+<span class="hljs-number">1</span> ] = <span class="hljs-string">"\n\tno file '"</span>..fpath..<span class="hljs-string">"'"</span>
+    <span class="hljs-keyword">end</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">nil</span>, <span class="hljs-built_in">table</span>.concat( msg )
+  <span class="hljs-keyword">end</span>
+<span class="hljs-keyword">end</span></pre></div>
+        
+      
+        
+        <p>The issue about the missing last local definition in chunks also
+applies to modules in case there is no explicit <code>return</code> statement
+(which could be for a module using the deprecated <code>module</code> function
+or a reimplementation thereof). The following replacement function
+of the standard Lua module searcher uses the above mentioned
+<code>loadfile_with_extra_return</code> to fix that.</p>
+
+        
+          <div class='highlight'><pre><span class="hljs-keyword">local</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">lua_searcher</span><span class="hljs-params">( modname )</span></span>
+  <span class="hljs-built_in">assert</span>( <span class="hljs-built_in">type</span>( modname ) == <span class="hljs-string">"string"</span> )
+  <span class="hljs-keyword">local</span> fn, msg = searchpath( modname, <span class="hljs-built_in">package</span>.path )
+  <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> fn <span class="hljs-keyword">then</span>
+    <span class="hljs-keyword">return</span> msg
+  <span class="hljs-keyword">end</span>
+  <span class="hljs-keyword">local</span> mod, msg = loadfile_with_extra_return( fn )
+  <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> mod <span class="hljs-keyword">then</span>
+    <span class="hljs-built_in">error</span>( <span class="hljs-string">"error loading module '"</span>..modname..<span class="hljs-string">"' from file '"</span>..fn..
+           <span class="hljs-string">"':\n\t"</span>..msg, <span class="hljs-number">0</span> )
+  <span class="hljs-keyword">end</span>
+  <span class="hljs-keyword">return</span> mod, fn
+<span class="hljs-keyword">end</span></pre></div>
+        
+      
+        
+        <p>The command line of <code>testy.lua</code> is inspected to collect command
+line flags (currently only <code>-r</code>) and all module/test files that
+should be tested.</p>
+
+        
+          <div class='highlight'><pre><span class="hljs-keyword">for</span> i,a <span class="hljs-keyword">in</span> <span class="hljs-built_in">ipairs</span>( <span class="hljs-built_in">_G</span>.arg ) <span class="hljs-keyword">do</span></pre></div>
+        
+      
+        
+        <p>The <code>-r</code> command line flag causes <strong>Testy</strong> to collect the local
+test functions not only from the loaded files directly, but also
+recursively from <code>require</code>d modules.</p>
+
+        
+          <div class='highlight'><pre>  <span class="hljs-keyword">if</span> a == <span class="hljs-string">"-r"</span> <span class="hljs-keyword">then</span>
+    do_recursive = <span class="hljs-keyword">true</span>
+  <span class="hljs-keyword">else</span>
+    files[ #files+<span class="hljs-number">1</span> ] = a
+  <span class="hljs-keyword">end</span></pre></div>
+        
+      
+        
+        <p>The arguments intended for the <code>testy.lua</code> script are removed
+from the <code>arg</code> table in case one of the loaded files also tries
+to process command line arguments.</p>
+
+        
+          <div class='highlight'><pre>  <span class="hljs-built_in">_G</span>.arg[ i ] = <span class="hljs-keyword">nil</span>
+<span class="hljs-keyword">end</span></pre></div>
+        
+      
+        
+        <p>All collected module/test files are loaded and checked for syntax
+errors. Errors at this stage are considered fatal and thus
+terminate the test session.</p>
+
+        
+          <div class='highlight'><pre><span class="hljs-keyword">for</span> i,f <span class="hljs-keyword">in</span> <span class="hljs-built_in">ipairs</span>( files ) <span class="hljs-keyword">do</span>
+  chunks[ i ] = <span class="hljs-built_in">assert</span>( loadfile_with_extra_return( f ) )
+<span class="hljs-keyword">end</span></pre></div>
+        
+      
+        
+        <p>If the <code>-r</code> command line flag is in effect, the fix to <code>loadfile</code>
+needs to be applied to <code>require</code>d modules as well. This is done by
+replacing the standard Lua searcher function with the fixed
+version from above.</p>
+
+        
+          <div class='highlight'><pre><span class="hljs-keyword">if</span> do_recursive <span class="hljs-keyword">then</span>
+  <span class="hljs-keyword">local</span> searchers = <span class="hljs-built_in">package</span>.searchers <span class="hljs-keyword">or</span> <span class="hljs-built_in">package</span>.loaders
+  <span class="hljs-built_in">assert</span>( #searchers == <span class="hljs-number">4</span>, <span class="hljs-string">"package.searchers has been modified"</span> )
+  searchers[ <span class="hljs-number">2</span> ] = lua_searcher
+<span class="hljs-keyword">end</span></pre></div>
+        
+      
+        
+        <p>Every loaded chunk is executed with a line and return hook enabled.
+The line/return hook is responsible for collecting the test
+functions.</p>
+
+        
+          <div class='highlight'><pre><span class="hljs-keyword">for</span> i,c <span class="hljs-keyword">in</span> <span class="hljs-built_in">ipairs</span>( chunks ) <span class="hljs-keyword">do</span></pre></div>
+        
+      
+        
+        <p><code>arg[0]</code> is set to the name of the loaded file to pretend as if
+the loaded file was executed by the standalone <code>lua</code> interpreter.
+This probably is unnecessary since usually only modules or
+specialized test scripts are tested using <strong>Testy</strong>, but some
+script might attempt to parse the <code>arg</code> table.</p>
+
+        
+          <div class='highlight'><pre>  <span class="hljs-built_in">_G</span>.arg[ <span class="hljs-number">0</span> ] = files[ i ]</pre></div>
+        
+      
+        
+        <p>The monky-patched version of <code>assert</code> is made available here
+already in case the module code stores global functions in
+upvalues.</p>
+
+        
+          <div class='highlight'><pre>  <span class="hljs-built_in">_G</span>.<span class="hljs-built_in">assert</span> = _G_assert
+  <span class="hljs-built_in">debug</span>.sethook( line_ret_hook, <span class="hljs-string">"lr"</span> )</pre></div>
+        
+      
+        
+        <p>The chunk is called as if loaded by the <code>require</code> function: A
+(fake) module name and the file location are passed as
+parameters. Errors during loading of the module code are also
+considered fatal and thus terminate the testing session.</p>
+
+        
+          <div class='highlight'><pre>  c( <span class="hljs-string">"module.test"</span>, files[ i ] )
+  <span class="hljs-built_in">debug</span>.sethook()
+<span class="hljs-keyword">end</span></pre></div>
+        
+      
+        
+        <p>After all module/test files are loaded and executed, the debug
+hooks should have collected all local test functions from the main
+chunks of the given files. Now those test functions are called to
+actually run the tests.</p>
+
+        
+          <div class='highlight'><pre><span class="hljs-keyword">for</span> i,t <span class="hljs-keyword">in</span> <span class="hljs-built_in">ipairs</span>( tests ) <span class="hljs-keyword">do</span></pre></div>
+        
+      
+        
+        <p>A nice caption for the test function is derived from the function
+name by stripping the <code>test_</code> prefix and replacing all
+underscores with spaces.</p>
+
+        
+          <div class='highlight'><pre>  <span class="hljs-keyword">local</span> headerlen = #t.caption + #t.source + <span class="hljs-number">8</span>
+  fh:write( t.caption, <span class="hljs-string">" ('"</span>, t.source, <span class="hljs-string">"')"</span> )
+  <span class="hljs-keyword">if</span> headerlen &gt;= max_line <span class="hljs-keyword">then</span>
+    fh:write( <span class="hljs-string">"\n"</span> )
+  <span class="hljs-keyword">else</span>
+    fh:write( <span class="hljs-string">"   "</span> )
+    cursor_pos = headerlen
+  <span class="hljs-keyword">end</span>
+  fh:flush()</pre></div>
+        
+      
+        
+        <p>The modified <code>assert</code> function and the new <code>testy_assert</code> are
+made available to the test functions. This happens before every
+test in case some module author messes with them.</p>
+
+        
+          <div class='highlight'><pre>  <span class="hljs-built_in">_G</span>.<span class="hljs-built_in">assert</span> = _G_assert
+  <span class="hljs-built_in">_G</span>.testy_assert = _G_testy_assert</pre></div>
+        
+      
+        
+        <p>The test functions are called with <code>debug.traceback</code> in effect,
+so that unhandled errors in test functions can be reported with
+stack traces.</p>
+
+        
+          <div class='highlight'><pre>  <span class="hljs-keyword">local</span> ok, msg = <span class="hljs-built_in">xpcall</span>( t.func, <span class="hljs-built_in">debug</span>.traceback )</pre></div>
+        
+      
+        
+        <p>After each test function a new line is started no matter what
+output the <code>assert</code>s in the test function produced.</p>
+
+        
+          <div class='highlight'><pre>  <span class="hljs-keyword">if</span> cursor_pos ~= <span class="hljs-number">0</span> <span class="hljs-keyword">then</span>
+    fh:write( <span class="hljs-string">"\n"</span> )
+    cursor_pos = <span class="hljs-number">0</span>
+  <span class="hljs-keyword">end</span>
+  <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> ok <span class="hljs-keyword">then</span></pre></div>
+        
+      
+        
+        <p>Unhandled errors are reported here, including stack traces.
+Unhandled errors are considered bugs and should be fixed as
+soon as possible, because they prevent the following test
+assertions from executing.</p>
+
+        
+          <div class='highlight'><pre>    n_errors = n_errors + <span class="hljs-number">1</span>
+    fh:write( <span class="hljs-string">"  [ERROR] test function '"</span>, t.name, <span class="hljs-string">"' died:\n  "</span>,
+              msg:gsub( <span class="hljs-string">"\n"</span>, <span class="hljs-string">"\n  "</span> ), <span class="hljs-string">"\n"</span> )
+  <span class="hljs-keyword">else</span></pre></div>
+        
+      
+        
+        <p>In case there were test failures during the execution of this
+test function, the details of those failures are written now.</p>
+
+        
+          <div class='highlight'><pre>    <span class="hljs-keyword">for</span> _,f <span class="hljs-keyword">in</span> <span class="hljs-built_in">ipairs</span>( t ) <span class="hljs-keyword">do</span>
+      fh:write( <span class="hljs-string">"  [FAIL] "</span>, t.source, <span class="hljs-string">":"</span>, f.line, <span class="hljs-string">": in function '"</span>,
+                t.name, <span class="hljs-string">"'\n"</span> )
+      <span class="hljs-keyword">if</span> f.reason <span class="hljs-keyword">then</span>
+        fh:write( <span class="hljs-string">"    reason: \""</span>, f.reason, <span class="hljs-string">"\"\n"</span> )
+      <span class="hljs-keyword">end</span>
+    <span class="hljs-keyword">end</span>
+  <span class="hljs-keyword">end</span>
+  fh:flush()
+<span class="hljs-keyword">end</span></pre></div>
+        
+      
+        
+        <p>Finally, the combined test results are printed.</p>
+
+        
+          <div class='highlight'><pre>fh:write( n_tests, <span class="hljs-string">" tests ("</span>, n_passed, <span class="hljs-string">" ok, "</span>, n_tests-n_passed,
+          <span class="hljs-string">" failed, "</span>, n_errors, <span class="hljs-string">" errors)\n"</span> )
+fh:flush()</pre></div>
+        
+      
+        
+        <p>In case there were test failures or even unhandled errors in the
+test functions, the <code>testy.lua</code> script exits with a non-zero
+exit status.</p>
+
+        
+          <div class='highlight'><pre><span class="hljs-keyword">if</span> n_tests ~= n_passed <span class="hljs-keyword">or</span> n_errors &gt; <span class="hljs-number">0</span> <span class="hljs-keyword">then</span>
+  <span class="hljs-built_in">os</span>.exit( <span class="hljs-number">1</span>, <span class="hljs-keyword">true</span> )
+<span class="hljs-keyword">end</span></pre></div>
+        
+      
+      <div class="fleur">h</div>
+    </div>
+  </div>
+</body>
+</html>
