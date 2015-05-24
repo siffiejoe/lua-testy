@@ -1,31 +1,105 @@
 #!/usr/bin/env lua
 
--- Simple unit testing script for Lua.
--- Loads and inspects Lua files for local variables (functions) in the
--- main chunk that start with `test_` and calls them. The `assert`
--- function is monkey-patched to be non-fatal inside of those test
--- functions and provide test statistics at the end.
+-- **Testy** is a quick-and-dirty unit testing script for Lua modules
+-- that tries to be as unobtrusive as possible. It loads the specified
+-- modules and collects test functions from local variables by means
+-- of debug hooks. Finally, those test functions are run to collect
+-- and print statistics about passed/failed test assertions.
+--
+-- Nice features about this approach are:
+-- *   By storing the test code side-by-side with your regular module
+--     code it should be easier to keep those two in sync.
+-- *   You can test internal/local functions without messing up your
+--     public interface (because the test functions themselves are
+--     local functions embedded in the module code as well).
+-- *   If you don't load the module via the `testy.lua` script, the
+--     local test functions and all test data just goes out of scope
+--     and gets garbage-collected very quickly.
+--
+-- The current implementation consists of a single pure Lua file
+-- compatible with Lua 5.1 and up, with no external dependencies.
+--
+-- The `testy.lua` [source code][1] is available on GitHub, and is
+-- released under the [MIT license][2].
+--
+-- Test functions are identified by a `"test_"` prefix and use the
+-- standard `assert` function or the new `testy_assert` function for
+-- individual test assertions. Both functions just log failure/success
+-- and print a visual indicator to the console, but they do *not*
+-- terminate the program (of course `assert` still does when used
+-- outside of a test function for compatibility).
+--
+-- Here is an example:
+--
+--     -- module1.lua
+--     local M = {}
+--
+--     function M.func1()
+--       return 1
+--     end
+--     
+--     -- this is a test function for the module function `M.func1()`
+--     local function test_func1()
+--       assert( M.func1() == 1, "func1() should always return 1" )
+--       assert( M.func1() ~= 2, "func1() should never return 2" )
+--       assert( type( M.func1() ) == "number" )
+--     end
+--
+--     function M.func2()
+--       return 2
+--     end
+--     
+--     -- this is a test function for the module function `M.func2()`
+--     local function test_func2()
+--       assert( M.func2() == 2 )
+--       assert( M.func2() ~= M.func1() )
+--     end
+--     
+--     return M
+--
+-- Using the `testy.lua` script on this file will get you the
+-- following output:
+--
+--     $ testy.lua module1.lua
+--     func1 ('module1.lua')   ...
+--     func2 ('module1.lua')   ..
+--     5 tests (5 ok, 0 failed, 0 errors)
+--
+-- **Testy** is a very minimal unit testing framework that lacks lots
+-- of features that other unit testing frameworks have, but in return
+-- you can start unit testing without a learning curve.
+--
+--   [1]: http://github.com/siffiejoe/lua-testy
+--   [2]: http://opensource.org/licenses/MIT
 
-
--- you might want to customize those variables:
+-- ## Implementation
+--
+-- There are some obviously arbitrary design choices (like e.g. the
+-- prefix of the test functions) that one might want to customize.
+-- Those variables allow you to do just that:
 local prefix = "test_" -- the prefix of test functions to look for
 local pass_char, fail_char = ".", "X" -- output for passed/failed tests
 local max_line = 72 -- where to wrap test output in the terminal
 local fh = io.stderr -- file handle to print test output to
 
-
--- but those are off limits:
+-- There's also some data that the `testy.lua` script needs to keep
+-- track of, like module files, test functions, test failures, etc.:
 local files, chunks, do_recursive = {}, {}, false
 local tests, test_functions = {}, {}
 local n_tests, n_passed, n_errors = 0, 0, 0
 local cursor_pos = 0
+local locals = {}
 local thischunk = debug.getinfo( 1, "f" ).func
+local assert = assert -- we monkey-patch assert, so save the real one
 
 
--- update test statistics
-local function testy_update( finfo, cinfo, ok, ... )
+-- During `assert` or `testy_assert` the test statistics are updated
+-- and a visual indicator is printed to the console.
+local function evaluate_test_assertion( finfo, cinfo, ok, ... )
   n_tests = n_tests + 1
   fh:write( ok and pass_char or fail_char )
+  -- For nicer output the visual test indicators are wrapped at a
+  -- certain line length (`max_line`).
   cursor_pos = (cursor_pos + 1) % max_line
   if cursor_pos == 0 then
     fh:write( "\n" )
@@ -35,6 +109,10 @@ local function testy_update( finfo, cinfo, ok, ... )
     n_passed = n_passed + 1
     return ok, ...
   else
+    -- Details of test failures are stored per test function and
+    -- printed when all `assert`s in this test function are complete.
+    -- This looks nicer on screen. (Another option would be to print
+    -- all failure details at the very end.)
     local fail = {
       no = n_tests,
       line = cinfo.currentline,
@@ -45,26 +123,64 @@ local function testy_update( finfo, cinfo, ok, ... )
 end
 
 
-local assert = assert
-
--- we provide a monkey-patched `assert` function that doesn't kill the
--- process when called from within the test functions and updates the
--- test statistics
+-- **Testy** provides a monkey-patched `assert` function that can be
+-- used in test functions without killing the program on an assertion
+-- failure. For compatibility, any call of this function outside of
+-- test functions just uses the original `assert` function from Lua's
+-- standard library. Usually this is exactly what you want, but there
+-- may be certain situations where you want to move an `assert` call
+-- to an extra function and still update test statistics (like e.g.
+-- assertions in callbacks, or helper functions for assertions). For
+-- these cases **Testy** also provides the new global function
+-- `testy_assert`.
 local function _G_assert( ok, ... )
-  -- check whether we are in a test_ function and act accordingly
+  -- The `assert` replacement checks the call stack via the `debug`
+  -- API to find the calling test function and some extra information
+  -- for the test statistics.
   local info = debug.getinfo( 2, "fl" )
   local finfo = test_functions[ info.func or false ]
   if finfo then
-    return testy_update( finfo, info, ok, ... )
+    return evaluate_test_assertion( finfo, info, ok, ... )
   else
     return assert( ok, ... )
   end
 end
 
 
--- assert-like function that updates test statistics and works if any
--- test function is on the call stack
+-- `testy_assert` works similar to the `assert` replacement function,
+-- but since calls to this function in non-test code is not an issue
+-- (it is a new function), `testy_assert` works anywhere and can
+-- always be used instead of plain `assert`. In certain situations it
+-- *has* to be used, e.g.:
+--
+--     local function assert_equal( x, y )
+--       testy_assert( x == y )  -- call in helper assertion function
+--     end
+--
+--     local function test_mytest()
+--       local function callback( x )
+--         testy_assert( x == 1 ) -- call in callback
+--       end
+--       M.foreachi( { 1, 1, 1 }, callback )
+--       assert_equal( 1, 1 )
+--     end
+--
+-- Although the new `testy_assert` function is more general than the
+-- monkey-patched `assert` function the latter is still made available
+-- because:
+--
+-- *   Every Lua programmer can see what's going on, and it looks more
+--     familiar.
+-- *   Converting ad-hoc test code is easier.
+-- *   Most test code can be run without using the `testy.lua` program
+--     simply by adding a call to one or more test functions in the
+--     module code.
+-- *   Also `assert` is shorter than `testy_assert`. ;-)
 local function _G_testy_assert( ok, ... )
+  -- A `testy_assert` call also inspects the call stack to find the
+  -- test function it belongs to, but since the restriction that it
+  -- *has* to be called directly from the test function could be
+  -- lifted, the entire call stack is searched from top to bottom.
   local info, i, finfo = debug.getinfo( 2, "fl" ), 3
   while info do
     if info.func == thischunk then break end
@@ -73,36 +189,26 @@ local function _G_testy_assert( ok, ... )
     info, i = debug.getinfo( i, "fl" ), i+1
   end
   if finfo then
-    return testy_update( finfo, info, ok, ... )
+    return evaluate_test_assertion( finfo, info, ok, ... )
   else
     error( "call to 'testy_assert' function outside of tests", 2 )
   end
 end
 
 
--- print final test statistics and exit with a non-zero status if
--- there were failed tests
-local function final_report()
-  if cursor_pos ~= 0 then
-    fh:write( "\n" )
-  end
-  fh:write( n_tests, " tests (", n_passed, " ok, ", n_tests-n_passed,
-            " failed, ", n_errors, " errors)\n" )
-  fh:flush()
-  if n_tests ~= n_passed or n_errors > 0 then
-    os.exit( 1, true )
-  end
-end
-
-
--- make sure that the hook is called from a main chunk that should
--- contain the test functions
+-- The local test functions are collected via debug hooks from main
+-- chunks only. This function checks that a debug hook belongs to
+-- a main chunk.
 local function main_chunk( lvl )
   lvl = lvl+1 -- skip stack level of this function
   local info, i = debug.getinfo( lvl, "Sf" ), lvl+2
   if not info or info.what ~= "main" or info.func == thischunk then
     return false
   end
+  -- If the `-r` flag is in effect, any main chunk may contain test
+  -- functions that will be collected. If `-r` is *not* in effect,
+  -- only the main chunk executed directly by the `testy.lua` script
+  -- is considered.
   if not do_recursive then
     info = debug.getinfo( lvl+1, "Sf" )
     while info and info.func ~= thischunk do
@@ -116,41 +222,20 @@ local function main_chunk( lvl )
 end
 
 
--- The return hook which collects local test functions from the main
--- chunk loaded by this script (or any main chunk if -r is in effect).
--- This function is currently unused, see below! XXX
-local function return_hook( event )
-  if event ~= "tail return" and main_chunk( 2 ) then
-    local source = debug.getinfo( 2, "S" ).short_src
-    local i, name, value = 2, debug.getlocal( 2, 1 )
-    while name do
-      if #name >= #prefix and
-         type( value ) == "function" and
-         name:sub( 1, #prefix ) == prefix then
-        local caption = name:sub( #prefix+1 ):gsub( "_", " " )
-        local tdata = {
-          caption = caption,
-          name = name,
-          func = value,
-          source = source,
-        }
-        tests[ #tests+1 ] = tdata
-        test_functions[ value ] = tdata
-      end
-      i, name, value = i+1, debug.getlocal( 2, i )
-    end
-  end
-end
-
-
--- only needed because we collect the locals in a line_hook XXX
-local locals = {}
-
--- The return hook doesn't work as expected in PUC-Rio Lua (the values
--- of local variables are garbled), so we additionally use a line
--- hook. This is a lot more expensive, since we query the local
--- variables every line and keep only the last set, but you probably
--- don't do much computation in main chunks of modules anyway ... XXX
+-- Usually a return hook would be the perfect place to collect
+-- information about local variables because all variables have been
+-- defined and contain their final values. Unfortunately all current
+-- PUC-Rio Lua versions (5.1.5, 5.2.4, and 5.3.0) clobber the local
+-- variables before the return hook is executed. As a consequence,
+-- **Testy** saves the current state of the local variables on every
+-- line using an additional line hook and uses that saved information
+-- in the return hook to identify test functions. Sadly that can be
+-- very inefficient, especially if the code executes a lot of lines
+-- (e.g. using a loop), but top level module code normally doesn't do
+-- that (it usually contains mostly function definitions). The test
+-- functions themselves are executed without debug hooks and thus run
+-- at full speed, so if you need to run a lot of code to prepare your
+-- test cases, better move that code into the first test function.
 local function line_ret_hook( event, no )
   if event ~= "tail_return" and main_chunk( 2 ) then
     local info = debug.getinfo( 2, "Sf" )
@@ -183,12 +268,13 @@ local function line_ret_hook( event, no )
 end
 
 
--- When using the line hook to collect local variables under some
+-- When using the line hook to collect local variables, under some
 -- circumstances the last local isn't picked up when the definition
--- is the last statement in the chunk. We try to append an additional
--- statement (`return`) to fix that (or revert to the normal source if
--- compilation fails with this modification). XXX
-local function testy_loadfile( fname )
+-- is the last statement in the chunk. To circumvent that problem
+-- this function first tries to load the code with an extra `return`
+-- statement appended. Only if that fails (which it will if the code
+-- already contains a final `return`), the original code is loaded.
+local function loadfile_with_extra_return( fname )
   local f, msg = io.open( fname, "rb" )
   if not f then
     return nil, msg
@@ -197,6 +283,8 @@ local function testy_loadfile( fname )
   if not s then
     return nil, "input/ouput error"
   end
+  -- `loadstring`/`load` won't handle shebang lines like `loadfile`
+  -- does, so the shebang line has to be removed.
   s = s:gsub( "^#[^\n]*", "") .. "\nreturn\n"
   local c, msg = (loadstring or load)( s, "@"..fname )
   if c then
@@ -207,67 +295,97 @@ local function testy_loadfile( fname )
 end
 
 
--- process command line arguments
+-- The command line of `testy.lua` is inspected to collect command
+-- line flags (currently only `-r`) and all module/test files that
+-- should be tested.
 for i,a in ipairs( _G.arg ) do
+  -- The `-r` command line flag causes **Testy** to collect the local
+  -- test functions not only from the loaded files directly, but also
+  -- recursively from `require`d modules.
   if a == "-r" then
     do_recursive = true
   else
     files[ #files+1 ] = a
   end
+  -- The arguments intended for the `testy.lua` script are removed
+  -- from the `arg` table in case one of the loaded files also tries
+  -- to process command line arguments.
   _G.arg[ i ] = nil
 end
 
--- rule out syntax errors (and missing files)
+-- All collected module/test files are loaded and checked for syntax
+-- errors. Errors at this stage are considered fatal and thus
+-- terminate the test session.
 for i,f in ipairs( files ) do
-  chunks[ i ] = assert( testy_loadfile( f ) ) -- XXX
+  chunks[ i ] = assert( loadfile_with_extra_return( f ) )
 end
 
--- load lua files and collect tests via a return hook
+-- Every loaded chunk is executed with a line and return hook enabled.
+-- The line/return hook is responsible for collecting the test
+-- functions.
 for i,c in ipairs( chunks ) do
+  -- `arg[0]` is set to the name of the loaded file to pretend as if
+  -- the loaded file was executed by the standalone `lua` interpreter.
+  -- This probably is unnecessary since usually only modules or
+  -- specialized test scripts are tested using **Testy**, but some
+  -- script might attempt to parse the `arg` table.
   _G.arg[ 0 ] = files[ i ]
+  -- The monky-patched version of `assert` is made available here
+  -- already in case the module code stores global functions in
+  -- upvalues.
   _G.assert = _G_assert
-  _G.testy_assert = _G_testy_assert
-  --debug.sethook( return_hook, "r" )
-  debug.sethook( line_ret_hook, "lr" ) -- XXX
-  -- pcall chunk (simulate a searchers call for modules)
-  local ok, msg = pcall( c, "module.test", files[ i ] )
+  debug.sethook( line_ret_hook, "lr" )
+  -- The chunk is called as if loaded by the `require` function: A
+  -- (fake) module name and the file location are passed as
+  -- parameters. Errors during loading of the module code are also
+  -- considered fatal and thus terminate the testing session.
+  c( "module.test", files[ i ] )
   debug.sethook()
-  if not ok then
-    n_errors = n_errors + 1
-    fh:write( "[ERROR] loading '", files[ i ], "' failed:",
-              msg, "\n" )
-    fh:flush()
-  end
 end
 
--- actually run the tests
+-- After all module/test files are loaded and executed, the debug
+-- hooks should have collected all local test functions from the main
+-- chunks of the given files. Now those test functions are called to
+-- actually run the tests.
 for i,t in ipairs( tests ) do
-  if cursor_pos ~= 0 then
-    fh:write( "\n" )
-    cursor_pos = 0
-  end
+  -- A nice caption for the test function is derived from the function
+  -- name by stripping the `test_` prefix and replacing all
+  -- underscores with spaces.
   local headerlen = #t.caption + #t.source + 8
   fh:write( t.caption, " ('", t.source, "')" )
   if headerlen >= max_line then
     fh:write( "\n" )
-    cursor_pos = 0
   else
     fh:write( "   " )
     cursor_pos = headerlen
   end
   fh:flush()
+  -- The modified `assert` function and the new `testy_assert` are
+  -- made available to the test functions. This happens before every
+  -- test in case some module author messes with them.
   _G.assert = _G_assert
   _G.testy_assert = _G_testy_assert
+  -- The test functions are called with `debug.traceback` in effect,
+  -- so that unhandled errors in test functions can be reported with
+  -- stack traces.
   local ok, msg = xpcall( t.func, debug.traceback )
+  -- After each test function a new line is started no matter what
+  -- output the `assert`s in the test function produced.
   if cursor_pos ~= 0 then
     fh:write( "\n" )
     cursor_pos = 0
   end
   if not ok then
+    -- Unhandled errors are reported here, including stack traces.
+    -- Unhandled errors are considered bugs and should be fixed as
+    -- soon as possible, because they prevent the following test
+    -- assertions from executing.
     n_errors = n_errors + 1
     fh:write( "  [ERROR] test function '", t.name, "' died:\n  ",
               msg:gsub( "\n", "\n  " ), "\n" )
   else
+    -- In case there were test failures during the execution of this
+    -- test function, the details of those failures are written now.
     for _,f in ipairs( t ) do
       fh:write( "  [FAIL] ", t.source, ":", f.line, ": in function '",
                 t.name, "'\n" )
@@ -279,6 +397,14 @@ for i,t in ipairs( tests ) do
   fh:flush()
 end
 
--- output final statistics
-final_report()
+-- Finally, the combined test results are printed.
+fh:write( n_tests, " tests (", n_passed, " ok, ", n_tests-n_passed,
+          " failed, ", n_errors, " errors)\n" )
+fh:flush()
+-- In case there were test failures or even unhandled errors in the
+-- test functions, the `testy.lua` script exits with a non-zero
+-- exit status.
+if n_tests ~= n_passed or n_errors > 0 then
+  os.exit( 1, true )
+end
 

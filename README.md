@@ -36,6 +36,7 @@ function M.func1()
   return 1
 end
 
+-- this is a test function for the module function `M.func1()`
 local function test_func1()
   assert( M.func1() == 1, "func1() should always return 1" )
   assert( M.func1() ~= 2, "func1() should never return 2" )
@@ -46,6 +47,7 @@ function M.func2()
   return 2
 end
 
+-- this is a test function for the module function `M.func2()`
 local function test_func2()
   assert( M.func2() == 2 )
   assert( M.func2() ~= M.func1() )
@@ -83,7 +85,7 @@ And that's about it.
 
 ##                              Gotchas                             ##
 
-Test execution is slow ...
+###                   Test execution is slow ...                   ###
 
 The test functions are executed at full speed (the `assert`s do a bit
 more work, but that shouldn't be noticable). The problem probably is
@@ -99,17 +101,7 @@ are executed in order, and the test functions run without the line
 hook enabled).
 
 
-Will you use the return hook once Lua fixes the clobbering problem?
-
-Probably, the code is still in there. But the "when" depends on which
-Lua versions receive the update: I can live without support for
-PUC-Rio Lua 5.1 (which probably won't be fixed, but LuaJIT already
-works, and most people have migrated to newer Lua versions anyway).
-But if Lua 5.2 also doesn't get an update, I'll have to wait a while
-...
-
-
-Why do you reuse Lua's `assert` function?
+###            Why do you reuse Lua's `assert` function?           ###
 
 Using the `assert` function is optional since `testy_assert` provides
 a superset of functionality, but when using `assert`
