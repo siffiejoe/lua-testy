@@ -80,7 +80,12 @@ You can pass multiple Lua files to the `testy.lua` script, or you can
 pass the `-r` command line flag, which causes `testy.lua` to also
 collect test functions from `require`d Lua modules recursively.
 
-And that's about it.
+And that's about it, but for more information you can view an
+annotated HTML version of the `testy.lua` source code rendered with
+[Docco][1] on the [GitHub pages][2].
+
+  [1]: http://jashkenas.github.io/docco/
+  [2]: http://siffiejoe.github.io/lua-testy/
 
 
 ##                              Gotchas                             ##
