@@ -20,7 +20,9 @@
 -- compatible with Lua 5.1 and up, with no external dependencies.
 --
 -- The `testy.lua` [source code][1] is available on GitHub, and is
--- released under the [MIT license][2].
+-- released under the [MIT license][2]. You can view [a nice HTML
+-- version][3] of this file rendered by [Docco][4] on the GitHub
+-- pages.
 --
 -- Test functions are identified by a `"test_"` prefix and use the
 -- standard `assert` function or the new `testy_assert` function for
@@ -71,6 +73,8 @@
 --
 --   [1]: http://github.com/siffiejoe/lua-testy
 --   [2]: http://opensource.org/licenses/MIT
+--   [3]: http://siffiejoe.github.io/lua-testy/
+--   [4]: http://jashkenas.github.io/docco/
 
 -- ## Implementation
 --
@@ -295,6 +299,51 @@ local function loadfile_with_extra_return( fname )
 end
 
 
+-- The enhanced/modified Lua searcher needs the Lua 5.2+ function
+-- `package.searchpath` to locate Lua files. For Lua 5.1 a backport
+-- is provided:
+local searchpath = package.searchpath
+if not searchpath then
+  local delim = package.config:match( "^(.-)\n" ):gsub( "%%", "%%%%" )
+
+  function searchpath( name, path )
+    local pname = name:gsub( "%.", delim ):gsub( "%%", "%%%%" )
+    local msg = {}
+    for subpath in path:gmatch( "[^;]+" ) do
+      local fpath = subpath:gsub( "%?", pname )
+      local f = io.open( fpath, "r" )
+      if f then
+        f:close()
+        return fpath
+      end
+      msg[ #msg+1 ] = "\n\tno file '"..fpath.."'"
+    end
+    return nil, table.concat( msg )
+  end
+end
+
+
+-- The issue about the missing last local definition in chunks also
+-- applies to modules in case there is no explicit `return` statement
+-- (which could be for module using the deprecated `module` function
+-- or a reimplementation thereof). The following replacement function
+-- of the standard Lua module searcher uses the above mentioned
+-- `loadfile_with_extra_return` to fix that.
+local function lua_searcher( modname )
+  assert( type( modname ) == "string" )
+  local fn, msg = searchpath( modname, package.path )
+  if not fn then
+    return msg
+  end
+  local mod, msg = loadfile_with_extra_return( fn )
+  if not mod then
+    error( "error loading module '"..modname.."' from file '"..fn..
+           "':\n\t"..msg, 0 )
+  end
+  return mod, fn
+end
+
+
 -- The command line of `testy.lua` is inspected to collect command
 -- line flags (currently only `-r`) and all module/test files that
 -- should be tested.
@@ -318,6 +367,16 @@ end
 -- terminate the test session.
 for i,f in ipairs( files ) do
   chunks[ i ] = assert( loadfile_with_extra_return( f ) )
+end
+
+-- If the `-r` command line flag is in effect, the fix to `loadfile`
+-- needs to be applied to `require`d modules as well. This is done by
+-- replacing the standard Lua searcher function with the fixed
+-- version from above.
+if do_recursive then
+  local searchers = package.searchers or package.loaders
+  assert( #searchers == 4, "package.searchers has been modified" )
+  searchers[ 2 ] = lua_searcher
 end
 
 -- Every loaded chunk is executed with a line and return hook enabled.
