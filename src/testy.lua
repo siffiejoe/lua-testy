@@ -299,9 +299,9 @@ local function loadfile_with_extra_return( fname )
 end
 
 
--- The enhanced/modified Lua searcher needs the Lua 5.2+ function
--- `package.searchpath` to locate Lua files. For Lua 5.1 a backport
--- is provided:
+-- The enhanced/modified Lua searcher below needs the Lua function
+-- `package.searchpath` available in Lua 5.2+ to locate Lua files. For
+-- Lua 5.1 a backport is provided:
 local searchpath = package.searchpath
 if not searchpath then
   local delim = package.config:match( "^(.-)\n" ):gsub( "%%", "%%%%" )
@@ -325,7 +325,7 @@ end
 
 -- The issue about the missing last local definition in chunks also
 -- applies to modules in case there is no explicit `return` statement
--- (which could be for module using the deprecated `module` function
+-- (which could be for a module using the deprecated `module` function
 -- or a reimplementation thereof). The following replacement function
 -- of the standard Lua module searcher uses the above mentioned
 -- `loadfile_with_extra_return` to fix that.
