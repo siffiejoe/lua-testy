@@ -95,6 +95,7 @@ Those variables allow you to do just that:</p>
           <div class='highlight'><pre><span class="hljs-keyword">local</span> prefix = <span class="hljs-string">"test_"</span> <span class="hljs-comment">-- the prefix of test functions to look for</span>
 <span class="hljs-keyword">local</span> pass_char, fail_char = <span class="hljs-string">"."</span>, <span class="hljs-string">"X"</span> <span class="hljs-comment">-- output for passed/failed tests</span>
 <span class="hljs-keyword">local</span> max_line = <span class="hljs-number">72</span> <span class="hljs-comment">-- where to wrap test output in the terminal</span>
+<span class="hljs-keyword">local</span> gap = <span class="hljs-string">" "</span> <span class="hljs-comment">-- space between caption and first pass/fail_char</span>
 <span class="hljs-keyword">local</span> fh = <span class="hljs-built_in">io</span>.stderr <span class="hljs-comment">-- file handle to print test output to</span></pre></div>
         
       
@@ -527,12 +528,12 @@ name by stripping the <code>test_</code> prefix and replacing all
 underscores with spaces.</p>
 
         
-          <div class='highlight'><pre>  <span class="hljs-keyword">local</span> headerlen = #t.caption + #t.source + <span class="hljs-number">8</span>
+          <div class='highlight'><pre>  <span class="hljs-keyword">local</span> headerlen = #t.caption + #t.source + #gap + <span class="hljs-number">5</span>
   fh:write( t.caption, <span class="hljs-string">" ('"</span>, t.source, <span class="hljs-string">"')"</span> )
   <span class="hljs-keyword">if</span> headerlen &gt;= max_line <span class="hljs-keyword">then</span>
     fh:write( <span class="hljs-string">"\n"</span> )
   <span class="hljs-keyword">else</span>
-    fh:write( <span class="hljs-string">"   "</span> )
+    fh:write( gap )
     cursor_pos = headerlen
   <span class="hljs-keyword">end</span>
   fh:flush()</pre></div>
