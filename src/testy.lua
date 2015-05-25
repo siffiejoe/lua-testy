@@ -84,6 +84,7 @@
 local prefix = "test_" -- the prefix of test functions to look for
 local pass_char, fail_char = ".", "X" -- output for passed/failed tests
 local max_line = 72 -- where to wrap test output in the terminal
+local gap = " " -- space between caption and first pass/fail_char
 local fh = io.stderr -- file handle to print test output to
 
 -- There's also some data that the `testy.lua` script needs to keep
@@ -410,12 +411,12 @@ for i,t in ipairs( tests ) do
   -- A nice caption for the test function is derived from the function
   -- name by stripping the `test_` prefix and replacing all
   -- underscores with spaces.
-  local headerlen = #t.caption + #t.source + 8
+  local headerlen = #t.caption + #t.source + #gap + 5
   fh:write( t.caption, " ('", t.source, "')" )
   if headerlen >= max_line then
     fh:write( "\n" )
   else
-    fh:write( "   " )
+    fh:write( gap )
     cursor_pos = headerlen
   end
   fh:flush()
