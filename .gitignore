@@ -1,2 +1,5 @@
 # docco output
-docs
+docs/
+
+# history files
+HISTO
