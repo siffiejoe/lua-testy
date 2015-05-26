@@ -19,6 +19,7 @@
               </div>
           </li>
         
+        
         <li id="section-2">
             <div class="annotation">
               
@@ -214,12 +215,12 @@ all failure details at the very end.)</p>
               <p><strong>Testy</strong> provides a monkey-patched <code>assert</code> function that can be
 used in test functions without killing the program on an assertion
 failure. For compatibility, any call of this function outside of
-test functions just uses the original <code>assert</code> function from Lua’s
-standard library. Usually this is exactly what you want, but there
-may be certain situations where you want to move an <code>assert</code> call
-to an extra function and still update test statistics (like e.g.
-assertions in callbacks, or helper functions for assertions). For
-these cases <strong>Testy</strong> also provides the new global function
+test functions just uses the <a href="http://www.lua.org/manual/5.1/manual.html#pdf-assert">original <code>assert</code> function</a> from
+Lua’s standard library. Usually this is exactly what you want, but
+there may be certain situations where you want to move an <code>assert</code>
+call to an extra function and still update test statistics (like
+e.g. assertions in callbacks, or helper functions for assertions).
+For these cases <strong>Testy</strong> also provides the new global function
 <code>testy_assert</code>.</p>
 
             </div>
@@ -260,10 +261,10 @@ for the test statistics.</p>
                 <a class="pilcrow" href="#section-10">&#182;</a>
               </div>
               <p><code>testy_assert</code> works similar to the <code>assert</code> replacement function,
-but since calls to this function in non-test code is not an issue
+but since calls to this function in non-test code are not an issue
 (it is a new function), <code>testy_assert</code> works anywhere and can
 always be used instead of plain <code>assert</code>. In certain situations it
-<em>has</em> to be used, e.g.:</p>
+<em>has</em> to be used to run <strong>Testy</strong> assertions, e.g.:</p>
 <pre><code><span class="hljs-keyword">local</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">assert_equal</span><span class="hljs-params">( x, y )</span></span>
   testy_assert( x == y )  <span class="hljs-comment">-- call in helper assertion function</span>
 <span class="hljs-keyword">end</span>
@@ -303,7 +304,7 @@ module code.</li>
               </div>
               <p>A <code>testy_assert</code> call also inspects the call stack to find the
 test function it belongs to, but since the restriction that it
-<em>has</em> to be called directly from the test function could be
+has to be called <em>directly</em> from the test function could be
 lifted, the entire call stack is searched from top to bottom.</p>
 
             </div>
@@ -356,7 +357,7 @@ a main chunk.</p>
               <p>If the <code>-r</code> flag is in effect, any main chunk may contain test
 functions that will be collected. If <code>-r</code> is <em>not</em> in effect,
 only the main chunk executed directly by the <code>testy.lua</code> script
-is considered.</p>
+will be scanned.</p>
 
             </div>
             
@@ -387,7 +388,7 @@ defined and contain their final values. Unfortunately all current
 PUC-Rio Lua versions (5.1.5, 5.2.4, and 5.3.0) clobber the local
 variables before the return hook is executed. As a consequence,
 <strong>Testy</strong> saves the current state of the local variables on every
-line using an additional line hook and uses that saved information
+line using an additional line hook, and uses that saved information
 in the return hook to identify test functions. Sadly that can be
 very inefficient, especially if the code executes a lot of lines
 (e.g. using a loop), but top level module code normally doesn’t do
@@ -443,7 +444,10 @@ circumstances the last local isn’t picked up when the definition
 is the last statement in the chunk. To circumvent that problem
 this function first tries to load the code with an extra <code>return</code>
 statement appended. Only if that fails (which it will if the code
-already contains a final <code>return</code>), the original code is loaded.</p>
+already contains a final <code>return</code>), the original code is loaded.
+Obviously this approach will fail when loading binary chunks, so
+this is currently unsupported in <strong>Testy</strong> (although it will work
+in most cases).</p>
 
             </div>
             
@@ -489,9 +493,9 @@ does, so the shebang line has to be removed.</p>
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-17">&#182;</a>
               </div>
-              <p>The enhanced/modified Lua searcher below needs the Lua function
-<code>package.searchpath</code> available in Lua 5.2+ to locate Lua files. For
-Lua 5.1 a backport is provided:</p>
+              <p>The enhanced/modified Lua searcher below needs the <a href="http://www.lua.org/manual/5.2/manual.html#pdf-package.searchpath">standard Lua
+function <code>package.searchpath</code></a> available in Lua 5.2+ to locate
+Lua files. For Lua 5.1 a backport is provided:</p>
 
             </div>
             
@@ -528,7 +532,7 @@ Lua 5.1 a backport is provided:</p>
 applies to modules in case there is no explicit <code>return</code> statement
 (which could be for a module using the deprecated <code>module</code> function
 or a reimplementation thereof). The following replacement function
-of the standard Lua module searcher uses the above mentioned
+of the <a href="http://www.lua.org/manual/5.2/manual.html#pdf-package.searchers">standard Lua module searcher</a> uses the above mentioned
 <code>loadfile_with_extra_return</code> to fix that.</p>
 
             </div>
@@ -727,7 +731,7 @@ considered fatal and thus terminate the testing session.</p>
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-28">&#182;</a>
               </div>
-              <p>After all module/test files are loaded and executed, the debug
+              <p>After all module/test files have been loaded and executed, the debug
 hooks should have collected all local test functions from the main
 chunks of the given files. Now those test functions are called to
 actually run the tests.</p>
@@ -828,7 +832,7 @@ output the <code>assert</code>s in the test function produced.</p>
               <p>Unhandled errors are reported here, including stack traces.
 Unhandled errors are considered bugs and should be fixed as
 soon as possible, because they prevent the following test
-assertions from executing.</p>
+assertions in the same test function from executing.</p>
 
             </div>
             
