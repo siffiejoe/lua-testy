@@ -75,9 +75,10 @@
 --   [2]: http://opensource.org/licenses/MIT
 --   [3]: http://siffiejoe.github.io/lua-testy/
 --   [4]: http://jashkenas.github.io/docco/
-
+--
 -- ## Implementation
 --
+
 -- There are some obviously arbitrary design choices (like e.g. the
 -- prefix of the test functions) that one might want to customize.
 -- Those variables allow you to do just that:
@@ -407,7 +408,7 @@ end
 -- hooks should have collected all local test functions from the main
 -- chunks of the given files. Now those test functions are called to
 -- actually run the tests.
-for i,t in ipairs( tests ) do
+for _,t in ipairs( tests ) do
   -- A nice caption for the test function is derived from the function
   -- name by stripping the `test_` prefix and replacing all
   -- underscores with spaces.
@@ -425,9 +426,9 @@ for i,t in ipairs( tests ) do
   -- test in case some module author messes with them.
   _G.assert = _G_assert
   _G.testy_assert = _G_testy_assert
-  -- The test functions are called with `debug.traceback` in effect,
-  -- so that unhandled errors in test functions can be reported with
-  -- stack traces.
+  -- The test functions are called with `debug.traceback` as error
+  -- message handler, so that unhandled errors in test functions can
+  -- be reported with stack traces.
   local ok, msg = xpcall( t.func, debug.traceback )
   -- After each test function a new line is started no matter what
   -- output the `assert`s in the test function produced.
