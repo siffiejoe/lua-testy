@@ -132,13 +132,15 @@ end
 -- **Testy** provides a monkey-patched `assert` function that can be
 -- used in test functions without killing the program on an assertion
 -- failure. For compatibility, any call of this function outside of
--- test functions just uses the original `assert` function from Lua's
--- standard library. Usually this is exactly what you want, but there
--- may be certain situations where you want to move an `assert` call
--- to an extra function and still update test statistics (like e.g.
--- assertions in callbacks, or helper functions for assertions). For
--- these cases **Testy** also provides the new global function
+-- test functions just uses the [original `assert` function][5] from
+-- Lua's standard library. Usually this is exactly what you want, but
+-- there may be certain situations where you want to move an `assert`
+-- call to an extra function and still update test statistics (like
+-- e.g. assertions in callbacks, or helper functions for assertions).
+-- For these cases **Testy** also provides the new global function
 -- `testy_assert`.
+--
+--   [5]: http://www.lua.org/manual/5.1/manual.html#pdf-assert
 local function _G_assert( ok, ... )
   -- The `assert` replacement checks the call stack via the `debug`
   -- API to find the calling test function and some extra information
@@ -154,10 +156,10 @@ end
 
 
 -- `testy_assert` works similar to the `assert` replacement function,
--- but since calls to this function in non-test code is not an issue
+-- but since calls to this function in non-test code are not an issue
 -- (it is a new function), `testy_assert` works anywhere and can
 -- always be used instead of plain `assert`. In certain situations it
--- *has* to be used, e.g.:
+-- *has* to be used to run **Testy** assertions, e.g.:
 --
 --     local function assert_equal( x, y )
 --       testy_assert( x == y )  -- call in helper assertion function
@@ -185,7 +187,7 @@ end
 local function _G_testy_assert( ok, ... )
   -- A `testy_assert` call also inspects the call stack to find the
   -- test function it belongs to, but since the restriction that it
-  -- *has* to be called directly from the test function could be
+  -- has to be called *directly* from the test function could be
   -- lifted, the entire call stack is searched from top to bottom.
   local info, i, finfo = debug.getinfo( 2, "fl" ), 3
   while info do
@@ -214,7 +216,7 @@ local function main_chunk( lvl )
   -- If the `-r` flag is in effect, any main chunk may contain test
   -- functions that will be collected. If `-r` is *not* in effect,
   -- only the main chunk executed directly by the `testy.lua` script
-  -- is considered.
+  -- will be scanned.
   if not do_recursive then
     info = debug.getinfo( lvl+1, "Sf" )
     while info and info.func ~= thischunk do
@@ -234,7 +236,7 @@ end
 -- PUC-Rio Lua versions (5.1.5, 5.2.4, and 5.3.0) clobber the local
 -- variables before the return hook is executed. As a consequence,
 -- **Testy** saves the current state of the local variables on every
--- line using an additional line hook and uses that saved information
+-- line using an additional line hook, and uses that saved information
 -- in the return hook to identify test functions. Sadly that can be
 -- very inefficient, especially if the code executes a lot of lines
 -- (e.g. using a loop), but top level module code normally doesn't do
@@ -280,6 +282,9 @@ end
 -- this function first tries to load the code with an extra `return`
 -- statement appended. Only if that fails (which it will if the code
 -- already contains a final `return`), the original code is loaded.
+-- Obviously this approach will fail when loading binary chunks, so
+-- this is currently unsupported in **Testy** (although it will work
+-- in most cases).
 local function loadfile_with_extra_return( fname )
   local f, msg = io.open( fname, "rb" )
   if not f then
@@ -301,9 +306,11 @@ local function loadfile_with_extra_return( fname )
 end
 
 
--- The enhanced/modified Lua searcher below needs the Lua function
--- `package.searchpath` available in Lua 5.2+ to locate Lua files. For
--- Lua 5.1 a backport is provided:
+-- The enhanced/modified Lua searcher below needs the [standard Lua
+-- function `package.searchpath`][6] available in Lua 5.2+ to locate
+-- Lua files. For Lua 5.1 a backport is provided:
+--
+--   [6]: http://www.lua.org/manual/5.2/manual.html#pdf-package.searchpath
 local searchpath = package.searchpath
 if not searchpath then
   local delim = package.config:match( "^(.-)\n" ):gsub( "%%", "%%%%" )
@@ -329,8 +336,10 @@ end
 -- applies to modules in case there is no explicit `return` statement
 -- (which could be for a module using the deprecated `module` function
 -- or a reimplementation thereof). The following replacement function
--- of the standard Lua module searcher uses the above mentioned
+-- of the [standard Lua module searcher][7] uses the above mentioned
 -- `loadfile_with_extra_return` to fix that.
+--
+--   [7]: http://www.lua.org/manual/5.2/manual.html#pdf-package.searchers
 local function lua_searcher( modname )
   assert( type( modname ) == "string" )
   local fn, msg = searchpath( modname, package.path )
@@ -404,7 +413,7 @@ for i,c in ipairs( chunks ) do
   debug.sethook()
 end
 
--- After all module/test files are loaded and executed, the debug
+-- After all module/test files have been loaded and executed, the debug
 -- hooks should have collected all local test functions from the main
 -- chunks of the given files. Now those test functions are called to
 -- actually run the tests.
@@ -440,7 +449,7 @@ for _,t in ipairs( tests ) do
     -- Unhandled errors are reported here, including stack traces.
     -- Unhandled errors are considered bugs and should be fixed as
     -- soon as possible, because they prevent the following test
-    -- assertions from executing.
+    -- assertions in the same test function from executing.
     n_errors = n_errors + 1
     fh:write( "  [ERROR] test function '", t.name, "' died:\n  ",
               msg:gsub( "\n", "\n  " ), "\n" )

@@ -14,7 +14,7 @@ Features:
 *   You can embed the test functions *inside* your module code without
     * wasting resource when not testing (embedded test functions get
       discarded by default unless you load them via the `testy.lua`
-      script.
+      script)
     * messing up your public interface (the tests are local and have
       access to internal functions that you might want to test)
 *   The test code looks like regular Lua code (you use `assert` for
@@ -86,55 +86,6 @@ annotated HTML version of the `testy.lua` source code rendered with
 
   [1]: http://jashkenas.github.io/docco/
   [2]: http://siffiejoe.github.io/lua-testy/
-
-
-##                              Gotchas                             ##
-
-###                   Test execution is slow ...                   ###
-
-The test functions are executed at full speed (the `assert`s do a bit
-more work, but that shouldn't be noticable). The problem probably is
-collecting the test functions in the first place. The usual approach
-would be to scan the local variables from a return hook. Unfortunately
-all recent Lua versions (except LuaJIT) clobber local variables before
-the return hook runs. Thus, we use a line hook instead which runs a
-lot more often than strictly necessary. Usually this is not a problem
-since most module code just defines functions. If you need to run a
-lot of code to prepare your test cases you should move that code
-inside of the first test function (all test functions inside one file
-are executed in order, and the test functions run without the line
-hook enabled).
-
-
-###            Why do you reuse Lua's `assert` function?           ###
-
-Using the `assert` function is optional since `testy_assert` provides
-a superset of functionality, but when using `assert`
-
-*   Every Lua programmer can see what's going on, and it looks more
-    familiar.
-*   Converting ad-hoc test code is easier.
-*   Most test code can be run without using the `testy.lua` program
-    simply by adding a call to one or more test functions in the
-    module code.
-*   Also `assert` is shorter than `testy_assert`. ;-)
-
-Just remember that all `assert`s in the following code potentially
-terminate the program and don't update the test results:
-
-```lua
-local function assert_equal( x, y )
-  assert( x == y )
-end
-
-local function test_mytest()
-  local function callback( x )
-    assert( x == 1 )
-  end
-  M.foreachi( { 1, 1, 1 }, callback )
-  assert_equal( 1, 1 )
-end
-```
 
 
 ##                              Contact                             ##
