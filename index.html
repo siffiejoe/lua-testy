@@ -644,8 +644,10 @@ version from above.</p>
             
             <div class="content"><div class='highlight'><pre><span class="hljs-keyword">if</span> do_recursive <span class="hljs-keyword">then</span>
   <span class="hljs-keyword">local</span> searchers = <span class="hljs-built_in">package</span>.searchers <span class="hljs-keyword">or</span> <span class="hljs-built_in">package</span>.loaders
-  <span class="hljs-built_in">assert</span>( #searchers == <span class="hljs-number">4</span>, <span class="hljs-string">"package.searchers has been modified"</span> )
-  searchers[ <span class="hljs-number">2</span> ] = lua_searcher
+  <span class="hljs-keyword">local</span> off = <span class="hljs-number">0</span>
+  <span class="hljs-keyword">if</span> <span class="hljs-built_in">package</span>.loaded[ <span class="hljs-string">"luarocks.loader"</span> ] <span class="hljs-keyword">then</span> off = <span class="hljs-number">1</span> <span class="hljs-keyword">end</span>
+  <span class="hljs-built_in">assert</span>( #searchers == <span class="hljs-number">4</span>+off, <span class="hljs-string">"package.searchers has been modified"</span> )
+  searchers[ <span class="hljs-number">2</span>+off ] = lua_searcher
 <span class="hljs-keyword">end</span></pre></div></div>
             
         </li>
