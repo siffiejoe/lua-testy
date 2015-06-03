@@ -386,8 +386,10 @@ end
 -- version from above.
 if do_recursive then
   local searchers = package.searchers or package.loaders
-  assert( #searchers == 4, "package.searchers has been modified" )
-  searchers[ 2 ] = lua_searcher
+  local off = 0
+  if package.loaded[ "luarocks.loader" ] then off = 1 end
+  assert( #searchers == 4+off, "package.searchers has been modified" )
+  searchers[ 2+off ] = lua_searcher
 end
 
 -- Every loaded chunk is executed with a line and return hook enabled.
