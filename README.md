@@ -80,7 +80,7 @@ You can pass multiple Lua files to the `testy.lua` script, or you can
 pass the `-r` command line flag, which causes `testy.lua` to also
 collect test functions from `require`d Lua modules recursively.
 
-If you installed this module via LuaRocks, you should also have a Lua
+If you installed **Testy** via LuaRocks, you should also have a Lua
 version-specific script `testy-5.x` available, in case you want to
 run the test suite with different Lua versions.
 
@@ -101,10 +101,10 @@ Comments and feedback are always welcome.
 
 ##                              License                             ##
 
-`testy` is *copyrighted free software* distributed under the MIT
+`Testy` is *copyrighted free software* distributed under the MIT
 license (the same license as Lua 5.1). The full license text follows:
 
-    testy (c) 2015 Philipp Janda
+    Testy (c) 2015 Philipp Janda
 
     Permission is hereby granted, free of charge, to any person obtaining
     a copy of this software and associated documentation files (the
