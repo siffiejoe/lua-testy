@@ -80,6 +80,10 @@ You can pass multiple Lua files to the `testy.lua` script, or you can
 pass the `-r` command line flag, which causes `testy.lua` to also
 collect test functions from `require`d Lua modules recursively.
 
+If you installed this module via LuaRocks, you should also have a Lua
+version-specific script `testy-5.x` available, in case you want to
+run the test suite with different Lua versions.
+
 And that's about it, but for more information you can view an
 annotated HTML version of the `testy.lua` source code rendered with
 [Docco][1] on the [GitHub pages][2].
