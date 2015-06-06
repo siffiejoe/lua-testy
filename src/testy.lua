@@ -90,7 +90,7 @@ local fh = io.stderr -- file handle to print test output to
 
 -- There's also some data that the `testy.lua` script needs to keep
 -- track of, like module files, test functions, test failures, etc.:
-local files, chunks, do_recursive = {}, {}, false
+local files, chunks, do_recursive, do_tap = {}, {}, false, false
 local tests, test_functions = {}, {}
 local n_tests, n_passed, n_errors = 0, 0, 0
 local cursor_pos = 0
@@ -103,12 +103,39 @@ local assert = assert -- we monkey-patch assert, so save the real one
 -- and a visual indicator is printed to the console.
 local function evaluate_test_assertion( finfo, cinfo, ok, ... )
   n_tests = n_tests + 1
-  fh:write( ok and pass_char or fail_char )
-  -- For nicer output the visual test indicators are wrapped at a
-  -- certain line length (`max_line`).
-  cursor_pos = (cursor_pos + 1) % max_line
-  if cursor_pos == 0 then
+  if do_tap then
+    fh:write( ok and "" or "not ", "ok ", n_tests )
+    local src, line = finfo.source, cinfo.currentline
+    -- The test description is just the file and line number. In
+    -- principle the `assert` message could be used here, but it
+    -- often describes the error instead of the test case, so this
+    -- could be weird.
+    fh:write( " ", src, ":", line )
+    -- However, if the assertion message starts with "# TODO" or
+    -- "# SKIP", those directives are passed through to the TAP
+    -- consumer.
+    if type( (...) ) == "string" and
+       ((...):match( "^#%s*[Tt][Oo][Dd][Oo]" ) or
+        (...):match( "^#%s*[Ss][Kk][Ii][Pp]" )) then
+      fh:write( " ", (...) )
+    end
+    -- In case the test failed, an additional diagnostic message is
+    -- printed:
+    if not ok then
+      local msg = (...) ~= nil and tostring( (...) )
+                               or "test assertion failed!"
+      fh:write( "\n# Failed test (", src, " at line ", line, ": '",
+                msg, "')" )
+    end
     fh:write( "\n" )
+  else
+    fh:write( ok and pass_char or fail_char )
+    -- For nicer output the visual test indicators are wrapped at a
+    -- certain line length (`max_line`).
+    cursor_pos = (cursor_pos + 1) % max_line
+    if cursor_pos == 0 then
+      fh:write( "\n" )
+    end
   end
   fh:flush()
   if ok then
@@ -118,7 +145,8 @@ local function evaluate_test_assertion( finfo, cinfo, ok, ... )
     -- Details of test failures are stored per test function and
     -- printed when all `assert`s in this test function are complete.
     -- This looks nicer on screen. (Another option would be to print
-    -- all failure details at the very end.)
+    -- all failure details at the very end.) For the TAP output the
+    -- failure details are written out just after the failed test.
     local fail = {
       no = n_tests,
       line = cinfo.currentline,
@@ -356,14 +384,24 @@ end
 
 
 -- The command line of `testy.lua` is inspected to collect command
--- line flags (currently only `-r`) and all module/test files that
--- should be tested.
+-- line flags (currently only `-r` and `-t`) and all module/test files
+-- that should be tested.
 for i,a in ipairs( _G.arg ) do
   -- The `-r` command line flag causes **Testy** to collect the local
   -- test functions not only from the loaded files directly, but also
   -- recursively from `require`d modules.
+  --
+  -- The `-t` command line flag causes **Testy** to write out
+  -- [TAP](http://testanything.org/tap-specification.html)-formatted
+  -- output to the standard output stream. This way you can use
+  -- other reporting tools like e.g. `prove`:
+  --
+  --     prove --exec "testy.lua -t" module1.lua
   if a == "-r" then
     do_recursive = true
+  elseif a == "-t" then
+    do_tap = true
+    fh = io.stdout
   else
     files[ #files+1 ] = a
   end
@@ -423,13 +461,17 @@ for _,t in ipairs( tests ) do
   -- A nice caption for the test function is derived from the function
   -- name by stripping the `test_` prefix and replacing all
   -- underscores with spaces.
-  local headerlen = #t.caption + #t.source + #gap + 5
-  fh:write( t.caption, " ('", t.source, "')" )
-  if headerlen >= max_line then
-    fh:write( "\n" )
+  if do_tap then
+    fh:write( "# ", t.caption, " ('", t.source, "')\n" )
   else
-    fh:write( gap )
-    cursor_pos = headerlen
+    local headerlen = #t.caption + #t.source + #gap + 5
+    fh:write( t.caption, " ('", t.source, "')" )
+    if headerlen >= max_line then
+      fh:write( "\n" )
+    else
+      fh:write( gap )
+      cursor_pos = headerlen
+    end
   end
   fh:flush()
   -- The modified `assert` function and the new `testy_assert` are
@@ -453,25 +495,39 @@ for _,t in ipairs( tests ) do
     -- soon as possible, because they prevent the following test
     -- assertions in the same test function from executing.
     n_errors = n_errors + 1
-    fh:write( "  [ERROR] test function '", t.name, "' died:\n  ",
-              msg:gsub( "\n", "\n  " ), "\n" )
+    if do_tap then
+      fh:write( "# [ERROR] test function '", t.name, "' died:\n#  ",
+                msg:gsub( "\n", "\n#  " ), "\n" )
+    else
+      fh:write( "  [ERROR] test function '", t.name, "' died:\n  ",
+                msg:gsub( "\n", "\n  " ), "\n" )
+    end
   else
-    -- In case there were test failures during the execution of this
-    -- test function, the details of those failures are written now.
-    for _,f in ipairs( t ) do
-      fh:write( "  [FAIL] ", t.source, ":", f.line, ": in function '",
-                t.name, "'\n" )
-      if f.reason then
-        fh:write( "    reason: \"", f.reason, "\"\n" )
+    if not do_tap then
+      -- In case there were test failures during the execution of this
+      -- test function, the details of those failures are written now.
+      -- For the TAP output the failure details were printed already.
+      for _,f in ipairs( t ) do
+        fh:write( "  [FAIL] ", t.source, ":", f.line,
+                  ": in function '", t.name, "'\n" )
+        if f.reason then
+          fh:write( "    reason: \"", f.reason, "\"\n" )
+        end
       end
     end
   end
   fh:flush()
 end
 
--- Finally, the combined test results are printed.
-fh:write( n_tests, " tests (", n_passed, " ok, ", n_tests-n_passed,
-          " failed, ", n_errors, " errors)\n" )
+if do_tap then
+  -- For the TAP output the "test plan" is written out. Any unhandled
+  -- error during the test run is considered a missing test.
+  fh:write( "1..", n_tests+n_errors, "\n" )
+else
+  -- Finally, the combined test results are printed.
+  fh:write( n_tests, " tests (", n_passed, " ok, ", n_tests-n_passed,
+            " failed, ", n_errors, " errors)\n" )
+end
 fh:flush()
 -- In case there were test failures or even unhandled errors in the
 -- test functions, the `testy.lua` script exits with a non-zero

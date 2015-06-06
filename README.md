@@ -78,7 +78,17 @@ you want to write your own helper assertion functions.
 
 You can pass multiple Lua files to the `testy.lua` script, or you can
 pass the `-r` command line flag, which causes `testy.lua` to also
-collect test functions from `require`d Lua modules recursively.
+collect test functions from `require`d Lua modules recursively. You
+may also switch to [TAP][3]-formatted output for third-party test
+report tools like e.g. `prove` using the `-t` command line flag.
+
+```
+$ prove --exec "testy.lua -t" module1.lua
+module1.lua .. ok
+All tests successful.
+Files=1, Tests=5,  0 wallclock secs ( 0.02 usr +  0.01 sys =  0.03 CPU)
+Result: PASS
+```
 
 If you installed **Testy** via LuaRocks, you should also have a Lua
 version-specific script `testy-5.x` available, in case you want to
@@ -90,6 +100,7 @@ annotated HTML version of the `testy.lua` source code rendered with
 
   [1]: http://jashkenas.github.io/docco/
   [2]: http://siffiejoe.github.io/lua-testy/
+  [3]: http://testanything.org/tap-specification.html
 
 
 ##                              Contact                             ##
