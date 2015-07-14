@@ -12,7 +12,7 @@ Features:
 *   Pure Lua (compatible with Lua 5.1 and up), no other external
     dependencies.
 *   You can embed the test functions *inside* your module code without
-    * wasting resource when not testing (embedded test functions get
+    * wasting resources when not testing (embedded test functions get
       discarded by default unless you load them via the `testy.lua`
       script)
     * messing up your public interface (the tests are local and have
