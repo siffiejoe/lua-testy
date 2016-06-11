@@ -97,6 +97,11 @@ local cursor_pos = 0
 local locals = {}
 local thischunk = debug.getinfo( 1, "f" ).func
 local assert = assert -- we monkey-patch assert, so save the real one
+-- try load some useful functions for actually writing the tests:
+local extra_ok, extra = pcall( require, "testy.extra" )
+if not extra_ok then
+  extra = {}
+end
 
 
 -- During `assert` or `testy_assert` the test statistics are updated
@@ -115,8 +120,8 @@ local function evaluate_test_assertion( finfo, cinfo, ok, ... )
     -- "# SKIP", those directives are passed through to the TAP
     -- consumer.
     if type( (...) ) == "string" and
-       ((...):match( "^#%s*[Tt][Oo][Dd][Oo]" ) or
-        (...):match( "^#%s*[Ss][Kk][Ii][Pp]" )) then
+       ((...):match( "^#[\t ]*[Tt][Oo][Dd][Oo]" ) or
+        (...):match( "^#[\t ]*[Ss][Kk][Ii][Pp]" )) then
       fh:write( " ", (...) )
     end
     -- In case the test failed, an additional diagnostic message is
@@ -125,7 +130,7 @@ local function evaluate_test_assertion( finfo, cinfo, ok, ... )
       local msg = (...) ~= nil and tostring( (...) )
                                or "test assertion failed!"
       fh:write( "\n# Failed test (", src, " at line ", line, ": '",
-                msg, "')" )
+                msg:gsub( "\n", "\n#  " ), "')" )
     end
     fh:write( "\n" )
   else
@@ -476,9 +481,14 @@ for _,t in ipairs( tests ) do
   fh:flush()
   -- The modified `assert` function and the new `testy_assert` are
   -- made available to the test functions. This happens before every
-  -- test in case some module author messes with them.
+  -- test in case some module author messes with them. If the
+  -- `testy.extra` module is available, the functions from this
+  -- module are added to the globals table as well.
   _G.assert = _G_assert
   _G.testy_assert = _G_testy_assert
+  for k,v in pairs( extra ) do
+    _G[ k ] = v
+  end
   -- The test functions are called with `debug.traceback` as error
   -- message handler, so that unhandled errors in test functions can
   -- be reported with stack traces.
@@ -511,7 +521,7 @@ for _,t in ipairs( tests ) do
         fh:write( "  [FAIL] ", t.source, ":", f.line,
                   ": in function '", t.name, "'\n" )
         if f.reason then
-          fh:write( "    reason: \"", f.reason, "\"\n" )
+          fh:write( "    \"", f.reason:gsub( "\n", "\n     " ), "\"\n" )
         end
       end
     end
@@ -531,8 +541,9 @@ end
 fh:flush()
 -- In case there were test failures or even unhandled errors in the
 -- test functions, the `testy.lua` script exits with a non-zero
--- exit status.
-if n_tests ~= n_passed or n_errors > 0 then
+-- exit status. TAP consumers (`prove` at least) get suspicious on a
+-- non-zero exit status, though, so we avoid that for normal failures.
+if not do_tap and n_tests ~= n_passed or n_errors > 0 then
   os.exit( 1, true )
 end
 
