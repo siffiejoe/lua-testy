@@ -287,14 +287,14 @@ local function line_ret_hook( event, no )
         if #name >= #prefix and
            type( value ) == "function" and
            name:sub( 1, #prefix ) == prefix then
-          local caption = name:sub( #prefix+1 ):gsub( "_", " " )
-          local tdata = {
-            caption = caption,
+          locs[ #locs+1 ] = {
+            caption = name:sub( #prefix+1 ):gsub( "_+", function( u )
+              return #u == 1 and " " or u:sub( 2 )
+            end ),
             name = name,
             func = value,
             source = info.short_src,
           }
-          locs[ #locs+1 ] = tdata
         end
         i, name, value = i+1, debug.getlocal( 2, i )
       end
@@ -464,8 +464,9 @@ end
 -- actually run the tests.
 for _,t in ipairs( tests ) do
   -- A nice caption for the test function is derived from the function
-  -- name by stripping the `test_` prefix and replacing all
-  -- underscores with spaces.
+  -- name by stripping the `test_` prefix and replacing all single
+  -- underscores with spaces (multiple consecutive underscores lose
+  -- one).
   if do_tap then
     fh:write( "# ", t.caption, " ('", t.source, "')\n" )
   else
@@ -521,7 +522,7 @@ for _,t in ipairs( tests ) do
         fh:write( "  [FAIL] ", t.source, ":", f.line,
                   ": in function '", t.name, "'\n" )
         if f.reason then
-          fh:write( "    \"", f.reason:gsub( "\n", "\n     " ), "\"\n" )
+          fh:write( "    ", f.reason:gsub( "\n", "\n    " ), "\n" )
         end
       end
     end
