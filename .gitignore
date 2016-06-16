@@ -1,5 +1,29 @@
-# docco output
+# docco output directory
 docs/
 
-# history files
+# local files for remembering stuff
 HISTO
+TODO
+
+# temporary files
+.*.swp
+
+# object files
+*.o
+*.obj
+
+# libraries
+*.so
+*.dll
+*.a
+*.lib
+*.exp
+
+# executables
+*.exe
+
+# precompiled Lua bytecode files
+*.luac
+
+# LuaRocks packages
+*.rock
