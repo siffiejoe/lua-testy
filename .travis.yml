@@ -1,0 +1,36 @@
+language: c
+
+# Select container based VM (no sudo available).
+sudo: false
+
+# Use gcc as the C compiler (clang is also available).
+compiler: gcc
+
+# Specify operating systems to test on (linux and/or osx).
+os:
+  - linux
+
+# Environment variables for the build.
+env:
+  matrix:
+    - LUA=LuaJIT-2.0.4
+    - LUA=Lua-5.2.4
+    - LUA=5.3.3
+
+# Only test changes to the master branch.
+branches:
+  only:
+    - master
+
+# Disable email notifications.
+notifications:
+  email: false
+
+# Install dependencies (Lua, Luarocks, ...).
+install:
+  - . .travis/install.sh
+
+# Build (and test?) the project.
+script:
+  - lua src/testy.lua src/testy/extra.lua
+
