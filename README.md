@@ -1,3 +1,5 @@
+![Build Status](https://travis-ci.org/siffiejoe/lua-testy.svg?branch=master)](https://travis-ci.org/siffiejoe/lua-testy)
+
 #             Testy -- Easy Unit Testing for Lua Modules             #
 
 ##                           Introduction                           ##
