@@ -145,6 +145,24 @@ track of, like module files, test functions, test failures, etc.:</p>
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-5">&#182;</a>
               </div>
+              <p>try load some useful functions for actually writing the tests:</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">local</span> extra_ok, extra = <span class="hljs-built_in">pcall</span>( <span class="hljs-built_in">require</span>, <span class="hljs-string">"testy.extra"</span> )
+<span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> extra_ok <span class="hljs-keyword">then</span>
+  extra = {}
+<span class="hljs-keyword">end</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-6">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-6">&#182;</a>
+              </div>
               <p>During <code>assert</code> or <code>testy_assert</code> the test statistics are updated
 and a visual indicator is printed to the console.</p>
 
@@ -159,11 +177,11 @@ and a visual indicator is printed to the console.</p>
         </li>
         
         
-        <li id="section-6">
+        <li id="section-7">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-6">&#182;</a>
+                <a class="pilcrow" href="#section-7">&#182;</a>
               </div>
               <p>The test description is just the file and line number. In
 principle the <code>assert</code> message could be used here, but it
@@ -177,11 +195,11 @@ could be weird.</p>
         </li>
         
         
-        <li id="section-7">
+        <li id="section-8">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-7">&#182;</a>
+                <a class="pilcrow" href="#section-8">&#182;</a>
               </div>
               <p>However, if the assertion message starts with “# TODO” or
 “# SKIP”, those directives are passed through to the TAP
@@ -190,19 +208,19 @@ consumer.</p>
             </div>
             
             <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">if</span> <span class="hljs-built_in">type</span>( (...) ) == <span class="hljs-string">"string"</span> <span class="hljs-keyword">and</span>
-       ((...):match( <span class="hljs-string">"^#%s*[Tt][Oo][Dd][Oo]"</span> ) <span class="hljs-keyword">or</span>
-        (...):match( <span class="hljs-string">"^#%s*[Ss][Kk][Ii][Pp]"</span> )) <span class="hljs-keyword">then</span>
+       ((...):match( <span class="hljs-string">"^#[\t ]*[Tt][Oo][Dd][Oo]"</span> ) <span class="hljs-keyword">or</span>
+        (...):match( <span class="hljs-string">"^#[\t ]*[Ss][Kk][Ii][Pp]"</span> )) <span class="hljs-keyword">then</span>
       fh:write( <span class="hljs-string">" "</span>, (...) )
     <span class="hljs-keyword">end</span></pre></div></div>
             
         </li>
         
         
-        <li id="section-8">
+        <li id="section-9">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-8">&#182;</a>
+                <a class="pilcrow" href="#section-9">&#182;</a>
               </div>
               <p>In case the test failed, an additional diagnostic message is
 printed:</p>
@@ -213,7 +231,7 @@ printed:</p>
       <span class="hljs-keyword">local</span> msg = (...) ~= <span class="hljs-keyword">nil</span> <span class="hljs-keyword">and</span> <span class="hljs-built_in">tostring</span>( (...) )
                                <span class="hljs-keyword">or</span> <span class="hljs-string">"test assertion failed!"</span>
       fh:write( <span class="hljs-string">"\n# Failed test ("</span>, src, <span class="hljs-string">" at line "</span>, line, <span class="hljs-string">": '"</span>,
-                msg, <span class="hljs-string">"')"</span> )
+                msg:gsub( <span class="hljs-string">"\n"</span>, <span class="hljs-string">"\n#\t"</span> ), <span class="hljs-string">"')"</span> )
     <span class="hljs-keyword">end</span>
     fh:write( <span class="hljs-string">"\n"</span> )
   <span class="hljs-keyword">else</span>
@@ -222,11 +240,11 @@ printed:</p>
         </li>
         
         
-        <li id="section-9">
+        <li id="section-10">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-9">&#182;</a>
+                <a class="pilcrow" href="#section-10">&#182;</a>
               </div>
               <p>For nicer output the visual test indicators are wrapped at a
 certain line length (<code>max_line</code>).</p>
@@ -247,11 +265,11 @@ certain line length (<code>max_line</code>).</p>
         </li>
         
         
-        <li id="section-10">
+        <li id="section-11">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-10">&#182;</a>
+                <a class="pilcrow" href="#section-11">&#182;</a>
               </div>
               <p>Details of test failures are stored per test function and
 printed when all <code>assert</code>s in this test function are complete.
@@ -273,11 +291,11 @@ failure details are written out just after the failed test.</p>
         </li>
         
         
-        <li id="section-11">
+        <li id="section-12">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-11">&#182;</a>
+                <a class="pilcrow" href="#section-12">&#182;</a>
               </div>
               <p><strong>Testy</strong> provides a monkey-patched <code>assert</code> function that can be
 used in test functions without killing the program on an assertion
@@ -297,11 +315,11 @@ For these cases <strong>Testy</strong> also provides the new global function
         </li>
         
         
-        <li id="section-12">
+        <li id="section-13">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-12">&#182;</a>
+                <a class="pilcrow" href="#section-13">&#182;</a>
               </div>
               <p>The <code>assert</code> replacement checks the call stack via the <code>debug</code>
 API to find the calling test function and some extra information
@@ -321,11 +339,11 @@ for the test statistics.</p>
         </li>
         
         
-        <li id="section-13">
+        <li id="section-14">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-13">&#182;</a>
+                <a class="pilcrow" href="#section-14">&#182;</a>
               </div>
               <p><code>testy_assert</code> works similar to the <code>assert</code> replacement function,
 but since calls to this function in non-test code are not an issue
@@ -363,11 +381,11 @@ module code.</li>
         </li>
         
         
-        <li id="section-14">
+        <li id="section-15">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-14">&#182;</a>
+                <a class="pilcrow" href="#section-15">&#182;</a>
               </div>
               <p>A <code>testy_assert</code> call also inspects the call stack to find the
 test function it belongs to, but since the restriction that it
@@ -393,11 +411,11 @@ lifted, the entire call stack is searched from top to bottom.</p>
         </li>
         
         
-        <li id="section-15">
+        <li id="section-16">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-15">&#182;</a>
+                <a class="pilcrow" href="#section-16">&#182;</a>
               </div>
               <p>The local test functions are collected via debug hooks from main
 chunks only. This function checks that a debug hook belongs to
@@ -415,11 +433,11 @@ a main chunk.</p>
         </li>
         
         
-        <li id="section-16">
+        <li id="section-17">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-16">&#182;</a>
+                <a class="pilcrow" href="#section-17">&#182;</a>
               </div>
               <p>If the <code>-r</code> flag is in effect, any main chunk may contain test
 functions that will be collected. If <code>-r</code> is <em>not</em> in effect,
@@ -443,11 +461,11 @@ will be scanned.</p>
         </li>
         
         
-        <li id="section-17">
+        <li id="section-18">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-17">&#182;</a>
+                <a class="pilcrow" href="#section-18">&#182;</a>
               </div>
               <p>Usually a return hook would be the perfect place to collect
 information about local variables because all variables have been
@@ -476,14 +494,14 @@ test cases, better move that code into the first test function.</p>
         <span class="hljs-keyword">if</span> #name &gt;= #prefix <span class="hljs-keyword">and</span>
            <span class="hljs-built_in">type</span>( value ) == <span class="hljs-string">"function"</span> <span class="hljs-keyword">and</span>
            name:sub( <span class="hljs-number">1</span>, #prefix ) == prefix <span class="hljs-keyword">then</span>
-          <span class="hljs-keyword">local</span> caption = name:sub( #prefix+<span class="hljs-number">1</span> ):gsub( <span class="hljs-string">"_"</span>, <span class="hljs-string">" "</span> )
-          <span class="hljs-keyword">local</span> tdata = {
-            caption = caption,
+          locs[ #locs+<span class="hljs-number">1</span> ] = {
+            caption = name:sub( #prefix+<span class="hljs-number">1</span> ):gsub( <span class="hljs-string">"_+"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( u )</span></span>
+              <span class="hljs-keyword">return</span> #u == <span class="hljs-number">1</span> <span class="hljs-keyword">and</span> <span class="hljs-string">" "</span> <span class="hljs-keyword">or</span> u:sub( <span class="hljs-number">2</span> )
+            <span class="hljs-keyword">end</span> ),
             name = name,
             func = value,
             source = info.short_src,
           }
-          locs[ #locs+<span class="hljs-number">1</span> ] = tdata
         <span class="hljs-keyword">end</span>
         i, name, value = i+<span class="hljs-number">1</span>, <span class="hljs-built_in">debug</span>.getlocal( <span class="hljs-number">2</span>, i )
       <span class="hljs-keyword">end</span>
@@ -500,11 +518,11 @@ test cases, better move that code into the first test function.</p>
         </li>
         
         
-        <li id="section-18">
+        <li id="section-19">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-18">&#182;</a>
+                <a class="pilcrow" href="#section-19">&#182;</a>
               </div>
               <p>When using the line hook to collect local variables, under some
 circumstances the last local isn’t picked up when the definition
@@ -531,11 +549,11 @@ in most cases).</p>
         </li>
         
         
-        <li id="section-19">
+        <li id="section-20">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-19">&#182;</a>
+                <a class="pilcrow" href="#section-20">&#182;</a>
               </div>
               <p><code>loadstring</code>/<code>load</code> won’t handle shebang lines like <code>loadfile</code>
 does, so the shebang line has to be removed.</p>
@@ -554,11 +572,11 @@ does, so the shebang line has to be removed.</p>
         </li>
         
         
-        <li id="section-20">
+        <li id="section-21">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-20">&#182;</a>
+                <a class="pilcrow" href="#section-21">&#182;</a>
               </div>
               <p>The enhanced/modified Lua searcher below needs the <a href="http://www.lua.org/manual/5.2/manual.html#pdf-package.searchpath">standard Lua
 function <code>package.searchpath</code></a> available in Lua 5.2+ to locate
@@ -589,11 +607,11 @@ Lua files. For Lua 5.1 a backport is provided:</p>
         </li>
         
         
-        <li id="section-21">
+        <li id="section-22">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-21">&#182;</a>
+                <a class="pilcrow" href="#section-22">&#182;</a>
               </div>
               <p>The issue about the missing last local definition in chunks also
 applies to modules in case there is no explicit <code>return</code> statement
@@ -621,11 +639,11 @@ of the <a href="http://www.lua.org/manual/5.2/manual.html#pdf-package.searchers"
         </li>
         
         
-        <li id="section-22">
+        <li id="section-23">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-22">&#182;</a>
+                <a class="pilcrow" href="#section-23">&#182;</a>
               </div>
               <p>The command line of <code>testy.lua</code> is inspected to collect command
 line flags (currently only <code>-r</code> and <code>-t</code>) and all module/test files
@@ -638,11 +656,11 @@ that should be tested.</p>
         </li>
         
         
-        <li id="section-23">
+        <li id="section-24">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-23">&#182;</a>
+                <a class="pilcrow" href="#section-24">&#182;</a>
               </div>
               <p>The <code>-r</code> command line flag causes <strong>Testy</strong> to collect the local
 test functions not only from the loaded files directly, but also
@@ -667,11 +685,11 @@ other reporting tools like e.g. <code>prove</code>:</p>
         </li>
         
         
-        <li id="section-24">
+        <li id="section-25">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-24">&#182;</a>
+                <a class="pilcrow" href="#section-25">&#182;</a>
               </div>
               <p>The arguments intended for the <code>testy.lua</code> script are removed
 from the <code>arg</code> table in case one of the loaded files also tries
@@ -685,11 +703,11 @@ to process command line arguments.</p>
         </li>
         
         
-        <li id="section-25">
+        <li id="section-26">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-25">&#182;</a>
+                <a class="pilcrow" href="#section-26">&#182;</a>
               </div>
               <p>All collected module/test files are loaded and checked for syntax
 errors. Errors at this stage are considered fatal and thus
@@ -704,11 +722,11 @@ terminate the test session.</p>
         </li>
         
         
-        <li id="section-26">
+        <li id="section-27">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-26">&#182;</a>
+                <a class="pilcrow" href="#section-27">&#182;</a>
               </div>
               <p>If the <code>-r</code> command line flag is in effect, the fix to <code>loadfile</code>
 needs to be applied to <code>require</code>d modules as well. This is done by
@@ -728,11 +746,11 @@ version from above.</p>
         </li>
         
         
-        <li id="section-27">
+        <li id="section-28">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-27">&#182;</a>
+                <a class="pilcrow" href="#section-28">&#182;</a>
               </div>
               <p>Every loaded chunk is executed with a line and return hook enabled.
 The line/return hook is responsible for collecting the test
@@ -745,11 +763,11 @@ functions.</p>
         </li>
         
         
-        <li id="section-28">
+        <li id="section-29">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-28">&#182;</a>
+                <a class="pilcrow" href="#section-29">&#182;</a>
               </div>
               <p><code>arg[0]</code> is set to the name of the loaded file to pretend as if
 the loaded file was executed by the standalone <code>lua</code> interpreter.
@@ -764,11 +782,11 @@ script might attempt to parse the <code>arg</code> table.</p>
         </li>
         
         
-        <li id="section-29">
+        <li id="section-30">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-29">&#182;</a>
+                <a class="pilcrow" href="#section-30">&#182;</a>
               </div>
               <p>The monky-patched version of <code>assert</code> is made available here
 already in case the module code stores global functions in
@@ -782,11 +800,11 @@ upvalues.</p>
         </li>
         
         
-        <li id="section-30">
+        <li id="section-31">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-30">&#182;</a>
+                <a class="pilcrow" href="#section-31">&#182;</a>
               </div>
               <p>The chunk is called as if loaded by the <code>require</code> function: A
 (fake) module name and the file location are passed as
@@ -802,11 +820,11 @@ considered fatal and thus terminate the testing session.</p>
         </li>
         
         
-        <li id="section-31">
+        <li id="section-32">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-31">&#182;</a>
+                <a class="pilcrow" href="#section-32">&#182;</a>
               </div>
               <p>After all module/test files have been loaded and executed, the debug
 hooks should have collected all local test functions from the main
@@ -820,15 +838,16 @@ actually run the tests.</p>
         </li>
         
         
-        <li id="section-32">
+        <li id="section-33">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-32">&#182;</a>
+                <a class="pilcrow" href="#section-33">&#182;</a>
               </div>
               <p>A nice caption for the test function is derived from the function
-name by stripping the <code>test_</code> prefix and replacing all
-underscores with spaces.</p>
+name by stripping the <code>test_</code> prefix and replacing all single
+underscores with spaces (multiple consecutive underscores lose
+one).</p>
 
             </div>
             
@@ -849,29 +868,34 @@ underscores with spaces.</p>
         </li>
         
         
-        <li id="section-33">
-            <div class="annotation">
-              
-              <div class="pilwrap ">
-                <a class="pilcrow" href="#section-33">&#182;</a>
-              </div>
-              <p>The modified <code>assert</code> function and the new <code>testy_assert</code> are
-made available to the test functions. This happens before every
-test in case some module author messes with them.</p>
-
-            </div>
-            
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">_G</span>.<span class="hljs-built_in">assert</span> = _G_assert
-  <span class="hljs-built_in">_G</span>.testy_assert = _G_testy_assert</pre></div></div>
-            
-        </li>
-        
-        
         <li id="section-34">
             <div class="annotation">
               
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-34">&#182;</a>
+              </div>
+              <p>The modified <code>assert</code> function and the new <code>testy_assert</code> are
+made available to the test functions. This happens before every
+test in case some module author messes with them. If the
+<code>testy.extra</code> module is available, the functions from this
+module are added to the globals table as well.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">_G</span>.<span class="hljs-built_in">assert</span> = _G_assert
+  <span class="hljs-built_in">_G</span>.testy_assert = _G_testy_assert
+  <span class="hljs-keyword">for</span> k,v <span class="hljs-keyword">in</span> <span class="hljs-built_in">pairs</span>( extra ) <span class="hljs-keyword">do</span>
+    <span class="hljs-built_in">_G</span>[ k ] = v
+  <span class="hljs-keyword">end</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-35">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-35">&#182;</a>
               </div>
               <p>The test functions are called with <code>debug.traceback</code> as error
 message handler, so that unhandled errors in test functions can
@@ -884,11 +908,11 @@ be reported with stack traces.</p>
         </li>
         
         
-        <li id="section-35">
+        <li id="section-36">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-35">&#182;</a>
+                <a class="pilcrow" href="#section-36">&#182;</a>
               </div>
               <p>After each test function a new line is started no matter what
 output the <code>assert</code>s in the test function produced.</p>
@@ -904,11 +928,11 @@ output the <code>assert</code>s in the test function produced.</p>
         </li>
         
         
-        <li id="section-36">
+        <li id="section-37">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-36">&#182;</a>
+                <a class="pilcrow" href="#section-37">&#182;</a>
               </div>
               <p>Unhandled errors are reported here, including stack traces.
 Unhandled errors are considered bugs and should be fixed as
@@ -920,10 +944,10 @@ assertions in the same test function from executing.</p>
             <div class="content"><div class='highlight'><pre>    n_errors = n_errors + <span class="hljs-number">1</span>
     <span class="hljs-keyword">if</span> do_tap <span class="hljs-keyword">then</span>
       fh:write( <span class="hljs-string">"# [ERROR] test function '"</span>, t.name, <span class="hljs-string">"' died:\n#  "</span>,
-                msg:gsub( <span class="hljs-string">"\n"</span>, <span class="hljs-string">"\n#  "</span> ), <span class="hljs-string">"\n"</span> )
+                msg:gsub( <span class="hljs-string">"\n"</span>, <span class="hljs-string">"\n#\t"</span> ), <span class="hljs-string">"\n"</span> )
     <span class="hljs-keyword">else</span>
       fh:write( <span class="hljs-string">"  [ERROR] test function '"</span>, t.name, <span class="hljs-string">"' died:\n  "</span>,
-                msg:gsub( <span class="hljs-string">"\n"</span>, <span class="hljs-string">"\n  "</span> ), <span class="hljs-string">"\n"</span> )
+                msg:gsub( <span class="hljs-string">"\n"</span>, <span class="hljs-string">"\n\t"</span> ), <span class="hljs-string">"\n"</span> )
     <span class="hljs-keyword">end</span>
   <span class="hljs-keyword">else</span>
     <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> do_tap <span class="hljs-keyword">then</span></pre></div></div>
@@ -931,11 +955,11 @@ assertions in the same test function from executing.</p>
         </li>
         
         
-        <li id="section-37">
+        <li id="section-38">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-37">&#182;</a>
+                <a class="pilcrow" href="#section-38">&#182;</a>
               </div>
               <p>In case there were test failures during the execution of this
 test function, the details of those failures are written now.
@@ -947,7 +971,7 @@ For the TAP output the failure details were printed already.</p>
         fh:write( <span class="hljs-string">"  [FAIL] "</span>, t.source, <span class="hljs-string">":"</span>, f.line,
                   <span class="hljs-string">": in function '"</span>, t.name, <span class="hljs-string">"'\n"</span> )
         <span class="hljs-keyword">if</span> f.reason <span class="hljs-keyword">then</span>
-          fh:write( <span class="hljs-string">"    reason: \""</span>, f.reason, <span class="hljs-string">"\"\n"</span> )
+          fh:write( <span class="hljs-string">"\t"</span>, f.reason:gsub( <span class="hljs-string">"\n\t?"</span>, <span class="hljs-string">"\n\t"</span> ), <span class="hljs-string">"\n"</span> )
         <span class="hljs-keyword">end</span>
       <span class="hljs-keyword">end</span>
     <span class="hljs-keyword">end</span>
@@ -960,11 +984,11 @@ For the TAP output the failure details were printed already.</p>
         </li>
         
         
-        <li id="section-38">
+        <li id="section-39">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-38">&#182;</a>
+                <a class="pilcrow" href="#section-39">&#182;</a>
               </div>
               <p>For the TAP output the “test plan” is written out. Any unhandled
 error during the test run is considered a missing test.</p>
@@ -977,11 +1001,11 @@ error during the test run is considered a missing test.</p>
         </li>
         
         
-        <li id="section-39">
+        <li id="section-40">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-39">&#182;</a>
+                <a class="pilcrow" href="#section-40">&#182;</a>
               </div>
               <p>Finally, the combined test results are printed.</p>
 
@@ -995,19 +1019,20 @@ fh:flush()</pre></div></div>
         </li>
         
         
-        <li id="section-40">
+        <li id="section-41">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-40">&#182;</a>
+                <a class="pilcrow" href="#section-41">&#182;</a>
               </div>
               <p>In case there were test failures or even unhandled errors in the
 test functions, the <code>testy.lua</code> script exits with a non-zero
-exit status.</p>
+exit status. TAP consumers (<code>prove</code> at least) get suspicious on a
+non-zero exit status, though, so we avoid that for normal failures.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">if</span> n_tests ~= n_passed <span class="hljs-keyword">or</span> n_errors &gt; <span class="hljs-number">0</span> <span class="hljs-keyword">then</span>
+            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> do_tap <span class="hljs-keyword">and</span> n_tests ~= n_passed <span class="hljs-keyword">or</span> n_errors &gt; <span class="hljs-number">0</span> <span class="hljs-keyword">then</span>
   <span class="hljs-built_in">os</span>.exit( <span class="hljs-number">1</span>, <span class="hljs-keyword">true</span> )
 <span class="hljs-keyword">end</span></pre></div></div>
             
