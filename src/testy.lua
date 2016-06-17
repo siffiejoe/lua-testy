@@ -130,7 +130,7 @@ local function evaluate_test_assertion( finfo, cinfo, ok, ... )
       local msg = (...) ~= nil and tostring( (...) )
                                or "test assertion failed!"
       fh:write( "\n# Failed test (", src, " at line ", line, ": '",
-                msg:gsub( "\n", "\n#  " ), "')" )
+                msg:gsub( "\n", "\n#\t" ), "')" )
     end
     fh:write( "\n" )
   else
@@ -508,10 +508,10 @@ for _,t in ipairs( tests ) do
     n_errors = n_errors + 1
     if do_tap then
       fh:write( "# [ERROR] test function '", t.name, "' died:\n#  ",
-                msg:gsub( "\n", "\n#  " ), "\n" )
+                msg:gsub( "\n", "\n#\t" ), "\n" )
     else
       fh:write( "  [ERROR] test function '", t.name, "' died:\n  ",
-                msg:gsub( "\n", "\n  " ), "\n" )
+                msg:gsub( "\n", "\n\t" ), "\n" )
     end
   else
     if not do_tap then
@@ -522,7 +522,7 @@ for _,t in ipairs( tests ) do
         fh:write( "  [FAIL] ", t.source, ":", f.line,
                   ": in function '", t.name, "'\n" )
         if f.reason then
-          fh:write( "    ", f.reason:gsub( "\n", "\n    " ), "\n" )
+          fh:write( "\t", f.reason:gsub( "\n\t?", "\n\t" ), "\n" )
         end
       end
     end

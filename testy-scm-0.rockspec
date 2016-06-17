@@ -17,7 +17,10 @@ dependencies = {
   "lua >= 5.1, < 5.4"
 }
 build = {
-  type = "none",
+  type = "builtin",
+  modules = {
+    ["testy.extra"] = "src/testy/extra.lua"
+  },
   install = {
     bin = {
       ["testy.lua"] = "src/testy.lua"
