@@ -21,6 +21,10 @@ Features:
       access to internal functions that you might want to test)
 *   The test code looks like regular Lua code (you use `assert` for
     your tests).
+*   Now includes (and autoloads) the `testy.extra` module, which
+    contains functions for specifying expected return values, expected
+    yields, expected iteration values, expected errors, etc. in a
+    declarative way.
 
 
 ##                          Getting Started                         ##
@@ -105,6 +109,177 @@ annotated HTML version of the `testy.lua` source code rendered with
   [3]: http://testanything.org/tap-specification.html
 
 
+##                     The `testy.extra` Module                     ##
+
+The `testy.lua` script tries to `require()` the `testy.extra` module
+and makes all exported functions available as global variables during
+test execution. Failure to load `testy.extra` is silently ignored.
+
+The following functions are part of `testy.extra`:
+
+*   `is( x, y ) ==> boolean, string`
+
+    `is( y )( x ) ==> boolean, string`
+
+    The `is` function is roughly equivalent to the equality operator,
+    but for certain values `y` is interpreted as a *template* or
+    *prototype*: If `y` is a function (and not primitively equal to
+    `x`), it is called as a unary predicate with `x` as argument. If
+    `y` is a table (and not primitively equal to `x`), it is iterated,
+    and the fields of `y` are compared to the corresponding fields of
+    `x` using the same rules as for `is`. The `is` function also
+    correctly handles `NaN` values.
+
+    The second form of `is` can be used to create unary predicates.
+    (I.e. `is( y )` returns a unary function that when applied to an
+    `x` is equivalent to the results of an `is( x, y )` call.)
+
+*   `is_<type>( x ) ==> boolean, string`
+
+    Unary predicates that check the type of the argument `x`.
+    There's one function for each of the eight primitive Lua types,
+    and additionally an `is_ctype` function for LuaJIT's FFI.
+
+*   `is_len( x, y ) ==> boolean, string`
+
+    `is_len( y )( x ) ==> boolean, string`
+
+    The `is_len` function checks whether `#x` is equal to `y`. The
+    second form of `is_len` can be used to create unary predicates.
+    (See `is` above!)
+
+*   `is_like( x, y ) ==> boolean, string`
+
+    `is_like( y )( x ) ==> boolean, string`
+
+    The `is_like` function uses `string.match` to check whether the
+    string `x` matches the pattern `y`. The second form of `is_like`
+    can be used to create unary predicates. (See `is` above!)
+
+*   `is_eq( x, y ) ==> boolean, string`
+
+    `is_eq( y )( x ) ==> boolean, string`
+
+    The `is_eq` function checks for (deep) equality between `x` and
+    `y`. It correctly handles `NaN` values, `__eq` metamethods, and
+    cyclic tables. This is a stricter version of the `is` function
+    above without the prototype/template stuff.
+
+    The second form of `is_eq` can be used to create unary predicates.
+    (See `is` above!)
+
+*   `is_gt( x, y ) ==> boolean, string`
+
+    `is_gt( y )( x ) ==> boolean, string`
+
+    The `is_gt` function checks whether `x > y`. The second form can
+    be used to create unary predicates. (See `is` above!)
+
+*   `is_lt( x, y ) ==> boolean, string`
+
+    `is_lt( y )( x ) ==> boolean, string`
+
+    The `is_lt` function checks whether `x < y`. The second form can
+    be used to create unary predicates. (See `is` above!)
+
+*   `is_ge( x, y ) ==> boolean, string`
+
+    `is_ge( y )( x ) ==> boolean, string`
+
+    The `is_ge` function checks whether `x >= y`. The second form can
+    be used to create unary predicates. (See `is` above!)
+
+*   `is_le( x, y ) ==> boolean, string`
+
+    `is_le( y )( x ) ==> boolean, string`
+
+    The `is_le` function checks whether `x <= y`. The second form can
+    be used to create unary predicates. (See `is` above!)
+
+*   `any( ... )( x ) ==> boolean, string`
+
+    `any( ... )( ... ) ==> boolean, string`
+
+    `any( ... )` creates a unary predicate that succeeds if at least
+    one of its arguments succeeds. The arguments are interpreted as by
+    the `is` function above. As a special exception, n-ary predicates
+    created via `resp`, `all`, `any`, and `none` will receive all
+    arguments (second form). The `any` function short-circuits similar
+    to the `or` operator.
+
+*   `all( ... )( x ) ==> boolean, string`
+
+    `all( ... )( ... ) ==> boolean, string`
+
+    `all( ... )` creates a unary predicate that succeeds if all of its
+    arguments match `x`. The arguments are interpreted as by the `is`
+    function above. As a special exception, n-ary predicates created
+    via `resp`, `all`, `any`, and `none` will receive all arguments
+    (second form). The `all` function short-circuits similar to the
+    `and` operator.
+
+*   `none( ... )( x ) ==> boolean, string`
+
+    `none( ... )( ... ) ==> boolean, string`
+
+    `none( ... )` creates a unary predicate that succeeds only if all
+    of its arguments fail. The arguments are interpreted as by the
+    `is` function above. As a special exception, n-ary predicates
+    created via `resp`, `all`, `any`, and `none` will receive all
+    arguments (second form). The `none` function short-circuits
+    similar to the `and` operator (with the individual operands
+    negated).
+
+*   `resp( ... )( ... ) ==> boolean, string`
+
+    `resp( ... )` creates an n-ary predicate that tries to match each
+    argument to the corresponding value in the first vararg list,
+    *resp*ectively. The values in the first argument list are
+    interpreted as by the `is` function above. Extra values in the
+    second vararg list are ignored.
+
+*   `raises( p, f, ... ) ==> boolean, string`
+
+    `raises` `pcall`s the function `f` with the given arguments and
+    matches the error object to `p`. `p` is interpreted as by the `is`
+    function above. If `f` does not raise an error, the `raises`
+    function returns `false`.
+
+*   `returns( p, f, ... ) ==> boolean, string`
+
+    `returns` `pcall`s the function `f` with the given arguments and
+    applies the predicate `p` to the return values. If `p` is not an
+    n-ary predicate created via `resp`, `any`, `all`, or `none`, it is
+    interpreted as by the `is` function above. If `f` raises an error,
+    the `returns` function returns `false`.
+
+*   `yields( a1, p1, ..., f ) ==> boolean, string`
+
+    `yields` creates a new coroutine from `f` and resumes it multiple
+    times using the arguments in the tables `a1`, `a2`, ..., and
+    compares the resulting values using the predicates `p1`, p2`, ...,
+    respectively. The arguments must be contained in tables as
+    returned by `table.pack` (the `n` field is optional if the table
+    is a proper sequence). The predicates `px` usually are n-ary
+    predicates created via `resp`, `any`, `all`, or `none`, but they
+    can be anything that `is` can handle (in which case they are
+    *unary* tests, though). `yields` only succeeds if `f` yields often
+    enough, no errors are raised, and all predicates match the
+    corresponding yielded/returned values.
+
+*   `iterates( ps, f, s, var ) ==> boolean, string`
+
+    `iterates` compares the values created by the iterator triple `f`,
+    `s`, `var`, to the values contained in the table `ps`. `ps` is a
+    table as returned by `table.pack` (the `n` field is optional if
+    the table is a proper sequence) and usually contains n-ary
+    predicates created via `resp`, `any`, `all`, or `none`, but it may
+    contain anything that `is` can handle (in which case they are
+    *unary* tests, though). `iterates` succeeds only if the iterator
+    iterates often enough, no errors are raised by `f`, and the tuples
+    created during iteration match the predicates in `ps`.
+
+
 ##                              Contact                             ##
 
 Philipp Janda, siffiejoe(a)gmx.net
@@ -114,10 +289,10 @@ Comments and feedback are always welcome.
 
 ##                              License                             ##
 
-`Testy` is *copyrighted free software* distributed under the MIT
+**Testy** is *copyrighted free software* distributed under the MIT
 license (the same license as Lua 5.1). The full license text follows:
 
-    Testy (c) 2015 Philipp Janda
+    Testy (c) 2015,2016 Philipp Janda
 
     Permission is hereby granted, free of charge, to any person obtaining
     a copy of this software and associated documentation files (the
