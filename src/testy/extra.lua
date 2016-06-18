@@ -46,6 +46,13 @@ local function notail( ... )
 end
 
 
+-- raise a type error similar to luaL_typeerror()
+local function type_error( fname, n, expected, v, idx )
+  error( s_format( "bad argument #%d to '%s' (%s expected, got %s)",
+                   fname, n, expected, type( v ) ), (idx or 2)-1 )
+end
+
+
 -- just for internal testing ...
 local function assert_not( ok, ... )
   return testy_assert( not ok, ... )
@@ -736,11 +743,6 @@ end
 
 
 do
-  local function type_error( fname, n, expected, v, idx )
-    error( s_format( "bad argument #%d to '%s' (%s expected, got %s)",
-                     fname, n, expected, type( v ) ), (idx or 2)-1 )
-  end
-
   local function error_context( emsg )
     return false, context()
   end
@@ -799,6 +801,83 @@ local function test_yields()
   assert_not( M.yields( { 1, 2 }, M.resp( 2, 3 ),
                         { 8, 9 }, M.resp( 9, 10 ),
                         { 4, 5 }, M.resp( 5, 6 ), f ) )
+end
+
+
+do
+  local function done_context( i, n )
+    return true, context()
+  end
+  F[ done_context ] = "iterates(...)  (${1}/${2})"
+
+  local function error_context( emsg )
+    return false, context()
+  end
+  F[ error_context ] = "error(${@1})!"
+
+  local function iterates_context( i, n, chks, f, s, ok, var_1, ... )
+    if not ok then
+      return notail( error_context( var_1 ) )
+    elseif var_1 == nil then
+      return false, context()
+    else
+      local chk, v, msg = chks[ i ]
+      if F[ chk ] then
+        v, msg = chk( var_1, ... )
+      else
+        v, msg = is_( var_1, chk, "var_1", true )
+      end
+      if not v then
+        return false, msg or context()
+      end
+      if i+1 > n then
+        return true, context()
+      else
+        return iterates_context( i+1, n, chks, f, s, pcall( f, s, var_1 ) )
+      end
+    end
+  end
+  F[ iterates_context ] = "iterates(...)  (${1}/${2})"
+
+  function M.iterates( chks, f, s, var )
+    if type( chks ) ~= "table" then
+      type_error( "iterates", 1, "table", chks, 2 )
+    end
+    local n = chks.n or #chks
+    if n < 1 then return done_context( 0, 0 ) end
+    return iterates_context( 1, n, chks, f, s, pcall( f, s, var ) )
+  end
+end
+
+
+local function test_iterates()
+  assert( M.iterates( {M.resp( 1,"a" ), M.resp( 2,"b" ),
+                       M.resp( 3,"c" ), M.resp( 4,"d" )},
+                      ipairs( {"a","b","c","d"} ) ) )
+  assert( M.iterates( {M.resp( 1,"a" ), M.resp( 2,"b" ),
+                       M.resp( 3,"c" )},
+                      ipairs( {"a","b","c","d"} ) ) )
+  assert_not( M.iterates( {M.resp( 1,"a" ), M.resp( 2,"b" ),
+                           M.resp( 3,"c" ), M.resp( 4,"d" )},
+                          ipairs( {"a","b","c"} ) ) )
+  assert_not( M.iterates( {M.resp( 1,"a" ), M.resp( 2,"b" ),
+                           M.resp( 3,"f" ), M.resp( 4,"d" )},
+                          ipairs( {"a","b","c","d"} ) ) )
+  assert_not( M.iterates( {M.resp( 1,"a" ), M.resp( 2,"b" ),
+                           M.resp( 3,M.is_number ), M.resp( 4,"d" )},
+                          ipairs( {"a","b","c","d"} ) ) )
+  local i = 0
+  local function iter()
+    if i < 3 then
+      i = i + 1
+      return i
+    end
+  end
+  assert( M.iterates( {1, 2, 3}, iter ) )
+  local function e_iter()
+    error( "argh", 0 )
+  end
+  assert_not( M.iterates( {1, 2, 3}, e_iter ) )
 end
 
 
