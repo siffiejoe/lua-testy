@@ -257,8 +257,8 @@ The following functions are part of `testy.extra`:
 
     `yields` creates a new coroutine from `f` and resumes it multiple
     times using the arguments in the tables `a1`, `a2`, ..., and
-    compares the resulting values using the predicates `p1`, p2`, ...,
-    respectively. The arguments must be contained in tables as
+    compares the resulting values using the predicates `p1`, `p2`,
+    ..., respectively. The arguments must be contained in tables as
     returned by `table.pack` (the `n` field is optional if the table
     is a proper sequence). The predicates `px` usually are n-ary
     predicates created via `resp`, `any`, `all`, or `none`, but they
