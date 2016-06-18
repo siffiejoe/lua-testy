@@ -138,7 +138,7 @@ The following functions are part of `testy.extra`:
 
     Unary predicates that check the type of the argument `x`.
     There's one function for each of the eight primitive Lua types,
-    and additionally an `is_ctype` function for LuaJIT's FFI.
+    and additionally an `is_cdata` function for LuaJIT's FFI type.
 
 *   `is_len( x, y ) ==> boolean, string`
 

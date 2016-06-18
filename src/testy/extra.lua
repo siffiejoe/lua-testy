@@ -323,17 +323,32 @@ local function test_is__type()
   assert( M.is_string( "3" ) )
   assert_not( M.is_string( 3 ) )
   assert( M.is_function( function() end ) )
+  assert_not( M.is_function( false ) )
   assert( M.is_userdata( io.stdout ) )
+  assert_not( M.is_userdata( {} ) )
   assert( M.is_thread( coroutine.create( function() end ) ) )
+  assert_not( M.is_thread( function() end ) )
   assert( M.is_table( {} ) )
+  assert_not( M.is_table( "" ) )
+  do
+    local ok, ffi = pcall( require, "ffi" )
+    if ok then
+      local ctype = ffi.metatype( "struct { int number; }", {} )
+      local cdata = ffi.new( ctype )
+      assert( M.is_cdata( ctype ) )
+      assert( M.is_cdata( cdata ) )
+    end
+  end
+  assert_not( M.is_cdata( io.stdout ) )
 end
 
 
 do
   local function is_len( x, l )
-    return #x == l, context()
+    local len = #x
+    return len == l, context()
   end
-  F[ is_len ] = "#x == ${2}?  (x: ${1})"
+  F[ is_len ] = "#x == ${2}?  (x: ${1}, #x: ${len})"
   M.is_len = curry_flip( is_len )
 end
 
