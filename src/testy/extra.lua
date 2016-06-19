@@ -477,6 +477,43 @@ end
 
 
 do
+  local function is_raweq( x, y )
+    if x ~= x and y ~= y then
+      return true, context()
+    else
+      return rawequal( x, y ), context()
+    end
+  end
+  F[ is_raweq ] = "rawequal(x, ${2})? (x: ${1})"
+  M.is_raweq = curry_flip( is_raweq )
+end
+
+
+local function test_is__raweq()
+  assert( M.is_raweq( 3, 3 ) )
+  assert( M.is_raweq( 3 )( 3 ) )
+  assert_not( M.is_raweq( 3, 4 ) )
+  assert_not( M.is_raweq( 4 )( 3 ) )
+  assert( M.is_raweq( 0/0, 0/0 ) )
+  assert( M.is_raweq( 0/0, -(0/0) ) )
+  assert_not( M.is_raweq( 0/0, 0 ) )
+  assert_not( M.is_raweq( 0, 0/0 ) )
+  local a, b = {}, {}
+  assert( M.is_raweq( a, a ) )
+  assert_not( M.is_raweq( a, b ) )
+  assert_not( M.is_raweq( b, a ) )
+  local meta = {
+    __eq = function( x, y ) return x.x == y.x end
+  }
+  local c = setmetatable( { x = 1 }, meta )
+  local d = setmetatable( { x = 1 }, meta )
+  assert( M.is_raweq( c, c ) )
+  assert_not( M.is_raweq( c, d ) )
+  assert_not( M.is_raweq( d, c ) )
+end
+
+
+do
   local function is_gt( x, y )
     return x > y, context()
   end

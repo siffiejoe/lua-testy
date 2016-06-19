@@ -168,6 +168,18 @@ The following functions are part of `testy.extra`:
     The second form of `is_eq` can be used to create unary predicates.
     (See `is` above!)
 
+*   `is_raweq( x, y ) ==> boolean, string`
+
+    `is_raweq( y )( x ) ==> boolean, string`
+
+    The `is_raweq` function checks for raw equality between `x` and
+    `y` (almost like the `rawequal` function from Lua's standard
+    library): it doesn't check `__eq` metamethods or recurse into
+    subtables. It does however correctly handle `NaN` values.
+
+    The second form of `is_raweq` can be used to create unary
+    predicates. (See `is` above!)
+
 *   `is_gt( x, y ) ==> boolean, string`
 
     `is_gt( y )( x ) ==> boolean, string`
