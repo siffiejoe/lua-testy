@@ -943,11 +943,11 @@ assertions in the same test function from executing.</p>
             
             <div class="content"><div class='highlight'><pre>    n_errors = n_errors + <span class="hljs-number">1</span>
     <span class="hljs-keyword">if</span> do_tap <span class="hljs-keyword">then</span>
-      fh:write( <span class="hljs-string">"# [ERROR] test function '"</span>, t.name, <span class="hljs-string">"' died:\n#  "</span>,
-                msg:gsub( <span class="hljs-string">"\n"</span>, <span class="hljs-string">"\n#\t"</span> ), <span class="hljs-string">"\n"</span> )
+      fh:write( <span class="hljs-string">"# [ERROR] test function '"</span>, t.name, <span class="hljs-string">"' died:\n# "</span>,
+                msg:gsub( <span class="hljs-string">"\n"</span>, <span class="hljs-string">"\n# "</span> ), <span class="hljs-string">"\n"</span> )
     <span class="hljs-keyword">else</span>
-      fh:write( <span class="hljs-string">"  [ERROR] test function '"</span>, t.name, <span class="hljs-string">"' died:\n  "</span>,
-                msg:gsub( <span class="hljs-string">"\n"</span>, <span class="hljs-string">"\n\t"</span> ), <span class="hljs-string">"\n"</span> )
+      fh:write( <span class="hljs-string">"[ERROR] test function '"</span>, t.name, <span class="hljs-string">"' died:\n "</span>,
+                msg:gsub( <span class="hljs-string">"\n"</span>, <span class="hljs-string">"\n "</span> ), <span class="hljs-string">"\n"</span> )
     <span class="hljs-keyword">end</span>
   <span class="hljs-keyword">else</span>
     <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> do_tap <span class="hljs-keyword">then</span></pre></div></div>
@@ -968,7 +968,7 @@ For the TAP output the failure details were printed already.</p>
             </div>
             
             <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">for</span> _,f <span class="hljs-keyword">in</span> <span class="hljs-built_in">ipairs</span>( t ) <span class="hljs-keyword">do</span>
-        fh:write( <span class="hljs-string">"  [FAIL] "</span>, t.source, <span class="hljs-string">":"</span>, f.line,
+        fh:write( <span class="hljs-string">"[FAIL] "</span>, t.source, <span class="hljs-string">":"</span>, f.line,
                   <span class="hljs-string">": in function '"</span>, t.name, <span class="hljs-string">"'\n"</span> )
         <span class="hljs-keyword">if</span> f.reason <span class="hljs-keyword">then</span>
           fh:write( <span class="hljs-string">"\t"</span>, f.reason:gsub( <span class="hljs-string">"\n\t?"</span>, <span class="hljs-string">"\n\t"</span> ), <span class="hljs-string">"\n"</span> )
