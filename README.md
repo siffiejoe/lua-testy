@@ -161,9 +161,9 @@ The following functions are part of `testy.extra`:
     `is_eq( y )( x ) ==> boolean, string`
 
     The `is_eq` function checks for (deep) equality between `x` and
-    `y`. It correctly handles `NaN` values, `__eq` metamethods, and
-    cyclic tables. This is a stricter version of the `is` function
-    above without the prototype/template stuff.
+    `y`. It correctly handles `NaN` values, metatables, `__eq`
+    metamethods, and cyclic tables. This is a stricter version of the
+    `is` function above without the prototype/template stuff.
 
     The second form of `is_eq` can be used to create unary predicates.
     (See `is` above!)

@@ -412,6 +412,10 @@ do
               return true
             elseif cache[ x ] == nil then
               cache[ x ], cache[ y ] = y, x
+              if not is_eq_( d_getmetatable( x ),
+                             d_getmetatable( y ), cache ) then
+                return false
+              end
               for k,v in pairs( x ) do
                 if not is_eq_( v, y[ k ], cache ) then return false end
               end
@@ -451,6 +455,12 @@ local function test_is__eq()
   assert_not( M.is_eq( 0, 0/0 ) )
   local a, b = {}, {}
   a.x, b.x = b, a
+  assert( M.is_eq( a, b ) )
+  assert( M.is_eq( b, a ) )
+  setmetatable( a, t )
+  assert_not( M.is_eq( a, b ) )
+  assert_not( M.is_eq( b, a ) )
+  setmetatable( b, {} )
   assert( M.is_eq( a, b ) )
   assert( M.is_eq( b, a ) )
   b.y = 1
