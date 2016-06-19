@@ -507,11 +507,11 @@ for _,t in ipairs( tests ) do
     -- assertions in the same test function from executing.
     n_errors = n_errors + 1
     if do_tap then
-      fh:write( "# [ERROR] test function '", t.name, "' died:\n#  ",
-                msg:gsub( "\n", "\n#\t" ), "\n" )
+      fh:write( "# [ERROR] test function '", t.name, "' died:\n# ",
+                msg:gsub( "\n", "\n# " ), "\n" )
     else
-      fh:write( "  [ERROR] test function '", t.name, "' died:\n  ",
-                msg:gsub( "\n", "\n\t" ), "\n" )
+      fh:write( "[ERROR] test function '", t.name, "' died:\n ",
+                msg:gsub( "\n", "\n " ), "\n" )
     end
   else
     if not do_tap then
@@ -519,7 +519,7 @@ for _,t in ipairs( tests ) do
       -- test function, the details of those failures are written now.
       -- For the TAP output the failure details were printed already.
       for _,f in ipairs( t ) do
-        fh:write( "  [FAIL] ", t.source, ":", f.line,
+        fh:write( "[FAIL] ", t.source, ":", f.line,
                   ": in function '", t.name, "'\n" )
         if f.reason then
           fh:write( "\t", f.reason:gsub( "\n\t?", "\n\t" ), "\n" )
