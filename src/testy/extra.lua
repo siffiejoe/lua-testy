@@ -135,7 +135,7 @@ local function test_escape()
   assert( escape( s2, 100 ) == [["\a\b\f\n\r\t\v\\\"'"]] )
   assert( escape( s3, 100 ) == '"'..s3..'"' )
   assert( escape( s4, 100 ) == '"'..s4..'"' )
-  assert( not escape( s5, 300 ):match( "%c" ) )
+  assert( not escape( s5, 500 ):match( "%c" ) )
 end
 
 
