@@ -654,7 +654,7 @@ do
   local function len_context( v, n, m )
     return v, context()
   end
-  F[ len_context ] = "select('#', ...) >= ${3}?  (n: ${2})"
+  F[ len_context ] = "select('#', ...) == ${3}?  (n: ${2})"
 
   function M.resp( ... )
     local m, preds = select( '#', ... ), { ... }
@@ -667,7 +667,7 @@ do
 
     local function check( ... )
       local n = select( '#', ... )
-      if m > n then
+      if m ~= n then
         return notail( len_context( false, n, m ) )
       end
       for i = 1, m do
@@ -685,7 +685,7 @@ end
 local function test_resp()
   assert( M.resp( 1, "a", {a=1} )( 1, "a", {a=1} ) )
   assert_not( M.resp( 1, "a", {a=2} )( 1, "a", {a=1} ) )
-  assert( M.resp( 1, "a", {a=1} )( 1, "a", {a=1}, 1 ) )
+  assert_not( M.resp( 1, "a", {a=1} )( 1, "a", {a=1}, 1 ) )
   assert_not( M.resp( 1, "a", {a=1}, 1 )( 1, "a", {a=1} ) )
   assert( M.resp( 1, M.is_like"^a", {a=1} )( 1, "a", {a=1} ) )
 end

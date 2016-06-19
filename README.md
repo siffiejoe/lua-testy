@@ -235,8 +235,7 @@ The following functions are part of `testy.extra`:
     `resp( ... )` creates an n-ary predicate that tries to match each
     argument to the corresponding value in the first vararg list,
     *resp*ectively. The values in the first argument list are
-    interpreted as by the `is` function above. Extra values in the
-    second vararg list are ignored.
+    interpreted as by the `is` function above.
 
 *   `raises( p, f, ... ) ==> boolean, string`
 
