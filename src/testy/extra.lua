@@ -589,9 +589,11 @@ function M.any( ... )
   local n, preds = select( '#', ... ), { ... }
   for i = 1, n do
     local y = preds[ i ]
-    if not F[ y ] then
-      preds[ i ] =  function( x )
-        return is_( x, y, "x", true )
+    preds[ i ] = function( ... )
+      if type( y ) == "function" and (...) ~= y then
+        return y( ... )
+      else
+        return is_( ..., y, "x", true )
       end
     end
   end
@@ -622,9 +624,11 @@ function M.all( ... )
   local n, preds = select( '#', ... ), { ... }
   for i = 1, n do
     local y = preds[ i ]
-    if not F[ y ] then
-      preds[ i ] = function( x )
-        return is_( x, y, "x", true )
+    preds[ i ] = function( ... )
+      if type( y ) == "function" and (...) ~= y then
+        return y( ... )
+      else
+        return is_( ..., y, "x", true )
       end
     end
   end
@@ -656,9 +660,11 @@ function M.none( ... )
   local n, preds = select( '#', ... ), { ... }
   for i = 1, n do
     local y = preds[ i ]
-    if not F[ y ] then
-      preds[ i ] = function( x )
-        return is_( x, y, "x", true )
+    preds[ i ] = function( ... )
+      if type( y ) == "function" and (...) ~= y then
+        return y( ... )
+      else
+        return is_( ..., y, "x", true )
       end
     end
   end
@@ -765,10 +771,7 @@ do
       return notail( error_context( (...) ) )
     end
     local v, msg
-    if F[ p ] then
-      -- do *not* wrap the test functions of `resp`, `any`, `all`, and
-      -- `none`, because that would mess with the ability to check
-      -- vararg lists!
+    if type( p ) == "function" and (...) ~= p then
       v, msg = p( ... )
     else
       -- wrap with is_ for shorter declarations and nicer stack traces
@@ -804,9 +807,9 @@ do
     local status = co_status( th )
     if not ok then
       return notail( error_context( ... ) )
-    elseif F[ chk ] then
+    elseif type( chk ) == "function" and (...) ~= chk then
       return notail( chk( ... ) )
-    else -- definitely *not* resp check function
+    else
       return notail( is_( ..., chk, "x", true ) )
     end
   end
@@ -874,7 +877,7 @@ do
       return false, context()
     else
       local chk, v, msg = chks[ i ]
-      if F[ chk ] then
+      if type( chk ) == "function" and chk ~= var_1 then
         v, msg = chk( var_1, ... )
       else
         v, msg = is_( var_1, chk, "var_1", true )

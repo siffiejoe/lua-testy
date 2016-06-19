@@ -208,37 +208,31 @@ The following functions are part of `testy.extra`:
     The `is_le` function checks whether `x <= y`. The second form can
     be used to create unary predicates. (See `is` above!)
 
-*   `any( ... )( x ) ==> boolean, string`
+*   `any( ... )( ... ) ==> boolean, string`
 
-    `any( ... )( ... ) ==> boolean, string`
-
-    `any( ... )` creates a unary predicate that succeeds if at least
-    one of its arguments succeeds. The arguments are interpreted as by
-    the `is` function above. As a special exception, n-ary predicates
-    created via `resp`, `all`, `any`, and `none` will receive all
-    arguments (second form). The `any` function short-circuits similar
+    `any( ... )` creates a n-ary predicate that succeeds if at least
+    one of its arguments matches the second vararg list. The arguments
+    to `any` are interpreted as by the `is` function above, except
+    that functions will be treated as n-ary not unary. The `any`
+    function evaluates from left to right and short-circuits similar
     to the `or` operator.
 
-*   `all( ... )( x ) ==> boolean, string`
+*   `all( ... )( ... ) ==> boolean, string`
 
-    `all( ... )( ... ) ==> boolean, string`
+    `all( ... )` creates a n-ary predicate that succeeds if all of its
+    arguments match the second vararg list. The arguments to `all` are
+    interpreted as by the `is` function above, except that functions
+    will be treated as n-ary not unary. The `all` function evaluates
+    from left to right and short-circuits similar to the `and`
+    operator.
 
-    `all( ... )` creates a unary predicate that succeeds if all of its
-    arguments match `x`. The arguments are interpreted as by the `is`
-    function above. As a special exception, n-ary predicates created
-    via `resp`, `all`, `any`, and `none` will receive all arguments
-    (second form). The `all` function short-circuits similar to the
-    `and` operator.
+*   `none( ... )( ... ) ==> boolean, string`
 
-*   `none( ... )( x ) ==> boolean, string`
-
-    `none( ... )( ... ) ==> boolean, string`
-
-    `none( ... )` creates a unary predicate that succeeds only if all
-    of its arguments fail. The arguments are interpreted as by the
-    `is` function above. As a special exception, n-ary predicates
-    created via `resp`, `all`, `any`, and `none` will receive all
-    arguments (second form). The `none` function short-circuits
+    `none( ... )` creates a n-ary predicate that succeeds only if all
+    of its arguments fail to match the second vararg list. The
+    arguments to `none` are interpreted as by the `is` function above,
+    except that functions will be treated as n-ary not unary. The
+    `none` function evaluates from left to right and short-circuits
     similar to the `and` operator (with the individual operands
     negated).
 
@@ -259,10 +253,10 @@ The following functions are part of `testy.extra`:
 *   `returns( p, f, ... ) ==> boolean, string`
 
     `returns` `pcall`s the function `f` with the given arguments and
-    applies the predicate `p` to the return values. If `p` is not an
-    n-ary predicate created via `resp`, `any`, `all`, or `none`, it is
-    interpreted as by the `is` function above. If `f` raises an error,
-    the `returns` function returns `false`.
+    applies the predicate `p` to the return values. `p` is interpreted
+    as by the `is` function above, except that functions are treated
+    as n-ary not unary. If `f` raises an error, the `returns` function
+    returns `false` (plus message).
 
 *   `yields( a1, p1, ..., f ) ==> boolean, string`
 
@@ -272,11 +266,10 @@ The following functions are part of `testy.extra`:
     ..., respectively. The arguments must be contained in tables as
     returned by `table.pack` (the `n` field is optional if the table
     is a proper sequence). The predicates `px` usually are n-ary
-    predicates created via `resp`, `any`, `all`, or `none`, but they
-    can be anything that `is` can handle (in which case they are
-    *unary* tests, though). `yields` only succeeds if `f` yields often
-    enough, no errors are raised, and all predicates match the
-    corresponding yielded/returned values.
+    predicates, but they can be anything that `is` can handle (in
+    which case they are *unary* tests, though). `yields` only succeeds
+    if `f` yields often enough, no errors are raised, and all
+    predicates match the corresponding yielded/returned values.
 
 *   `iterates( ps, f, s, var ) ==> boolean, string`
 
@@ -284,11 +277,11 @@ The following functions are part of `testy.extra`:
     `s`, `var`, to the values contained in the table `ps`. `ps` is a
     table as returned by `table.pack` (the `n` field is optional if
     the table is a proper sequence) and usually contains n-ary
-    predicates created via `resp`, `any`, `all`, or `none`, but it may
-    contain anything that `is` can handle (in which case they are
-    *unary* tests, though). `iterates` succeeds only if the iterator
-    iterates often enough, no errors are raised by `f`, and the tuples
-    created during iteration match the predicates in `ps`.
+    predicates, but it may contain anything that `is` can handle (in
+    which case they are *unary* tests, though). `iterates` succeeds
+    only if the iterator iterates often enough, no errors are raised
+    by `f`, and the tuples created during iteration match the
+    predicates in `ps`.
 
 
 ##                              Contact                             ##
