@@ -825,24 +825,18 @@ do
   end
   F[ yields_context ] = "yields(...) (i: ${i}, status: ${status})"
 
-  function M.yields( a, b, ... )
-    local n, f = select( '#', a, b, ... ), nil
-    if n % 2 == 1 then
-      f = select( n, a, b, ... )
-    else
-      n = n + 1
-    end
+  function M.yields( f, ... )
     if type( f ) ~= "function" then
-      type_error( "yields", n, "function", f, 2 )
+      type_error( "yields", 1, "function", f, 2 )
     end
     -- on Lua 5.1 coroutine.create can only handle Lua functions, so
     -- we make sure that it gets one:
     local th = co_create( function( ... ) return f( ... ) end )
     local v, msg
-    for i = 1, n-1, 2 do
-      local args, chk = select( i, a, b, ... )
+    for i = 1,select( '#', ... ),2 do
+      local args, chk = select( i, ... )
       if type( args ) ~= "table" then
-        type_error( "yields", i, "table", args, 2 )
+        type_error( "yields", i+1, "table", args, 2 )
       end
       local m = args.n or #args
       v, msg = yields_context( chk, th, (i+1)/2,
@@ -861,14 +855,14 @@ local function test_yields()
     local c, d = coroutine.yield( a+1, b+1 )
     return c+1, d+1
   end
-  assert( M.yields( { 1, 2 }, M.resp( 2, 3 ),
-                    { 8, 9 }, M.resp( 9, 10 ), f ) )
-  assert( M.yields( { 1, 2 }, 2, f ) )
-  assert( M.yields( { 1, 2 }, M.is_gt( 1 ), f ) )
-  assert_not( M.yields( { 1, 2 }, M.resp( 2, 3 ),
-                        { 8, 9 }, M.resp( 9, 10 ),
-                        { 4, 5 }, M.resp( 5, 6 ), f ) )
-  assert( M.yields( { 1 }, "number", type ) )
+  assert( M.yields( f, { 1, 2 }, M.resp( 2, 3 ),
+                       { 8, 9 }, M.resp( 9, 10 ) ) )
+  assert( M.yields( f, { 1, 2 }, 2 ) )
+  assert( M.yields( f, { 1, 2 }, M.is_gt( 1 ) ) )
+  assert_not( M.yields( f, { 1, 2 }, M.resp( 2, 3 ),
+                           { 8, 9 }, M.resp( 9, 10 ),
+                           { 4, 5 }, M.resp( 5, 6 ) ) )
+  assert( M.yields( type, { 1 }, "number" ) )
 end
 
 

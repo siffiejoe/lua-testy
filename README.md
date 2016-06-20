@@ -258,7 +258,7 @@ The following functions are part of `testy.extra`:
     as n-ary not unary. If `f` raises an error, the `returns` function
     returns `false` (plus message).
 
-*   `yields( a1, p1, ..., f ) ==> boolean, string`
+*   `yields( f, a1, p1, ... ) ==> boolean, string`
 
     `yields` creates a new coroutine from `f` and resumes it multiple
     times using the arguments in the tables `a1`, `a2`, ..., and
