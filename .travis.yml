@@ -15,7 +15,7 @@ env:
   matrix:
     - LUA=LuaJIT-2.0.4
     - LUA=Lua-5.2.4
-    - LUA=5.3.3
+    - LUA=Lua-5.3.3
 
 # Only test changes to the master branch.
 branches:
