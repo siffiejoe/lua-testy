@@ -345,6 +345,44 @@ end
 
 
 do
+  local function is_false( x )
+    return not x, context()
+  end
+  F[ is_false ] = "x == false or x == nil? (x: ${1})"
+  M.is_false = is_false
+end
+
+
+local function test_is__false()
+  assert( M.is_false( nil ) )
+  assert( M.is_false( false ) )
+  assert_not( M.is_false( 1 ) )
+  assert_not( M.is_false( {} ) )
+  assert_not( M.is_false( true ) )
+  assert_not( M.is_false( "" ) )
+end
+
+
+do
+  local function is_true( x )
+    return not not x, context()
+  end
+  F[ is_true ] = "x ~= false and x ~= nil? (x: ${1})"
+  M.is_true = is_true
+end
+
+
+local function test_is__true()
+  assert( M.is_true( 1 ) )
+  assert( M.is_true( {} ) )
+  assert( M.is_true( true ) )
+  assert( M.is_true( "" ) )
+  assert_not( M.is_true( false ) )
+  assert_not( M.is_true( nil ) )
+end
+
+
+do
   local function is_len( x, l )
     local len = #x
     return len == l, context()

@@ -140,6 +140,16 @@ The following functions are part of `testy.extra`:
     There's one function for each of the eight primitive Lua types,
     and additionally an `is_cdata` function for LuaJIT's FFI type.
 
+*   `is_false( x ) ==> boolean, string`
+
+    Unary predicate that tests for `nil` or `false` (commonly known as
+    a *falsey* value).
+
+*   `is_true( x ) ==> boolean, string`
+
+    Unary predicate that tests for a *trueish* value (a value that is
+    neither `nil` nor `false`).
+
 *   `is_len( x, y ) ==> boolean, string`
 
     `is_len( y )( x ) ==> boolean, string`
