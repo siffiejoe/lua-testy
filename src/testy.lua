@@ -508,10 +508,10 @@ for _,t in ipairs( tests ) do
     n_errors = n_errors + 1
     if do_tap then
       fh:write( "# [ERROR] test function '", t.name, "' died:\n# ",
-                msg:gsub( "\n", "\n# " ), "\n" )
+                tostring(msg):gsub( "\n", "\n# " ), "\n" )
     else
       fh:write( "[ERROR] test function '", t.name, "' died:\n ",
-                msg:gsub( "\n", "\n " ), "\n" )
+                tostring(msg):gsub( "\n", "\n " ), "\n" )
     end
   else
     if not do_tap then
